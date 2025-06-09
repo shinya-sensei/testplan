@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>受付一覧</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f5f5f5; }
+  </style>
+</head>
+<body>
+  <h2>受付一覧</h2>
+  <table id="data-table">
+    <thead>
+      <tr><th>お名前</th><th>店舗</th><th>お席</th><th>受付状況</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const apiUrl = "https://script.google.com/macros/s/AKfycbxUn4oae7z8yjkhiXB1QtAFNhQepq2uuS5SpQMAVMyvwkzugggtx8ONtFTr0tAO3ki6ig/exec";
+
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        const tbody = document.querySelector("#data-table tbody");
+        data.forEach(row => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${row["お名前"] || ""}</td>
+            <td>${row["店舗"] || ""}</td>
+            <td>${row["お席"] || ""}</td>
+            <td>${row["受付"] || ""}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      })
+      .catch(err =>
