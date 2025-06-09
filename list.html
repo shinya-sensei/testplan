@@ -1,61 +1,76 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>受付一覧</title>
   <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
     table {
       border-collapse: collapse;
       width: 100%;
+      margin-top: 20px;
     }
     th, td {
       border: 1px solid #ccc;
       padding: 8px;
     }
+    th {
+      background: #f0f0f0;
+    }
     tr.checked-in {
-      background-color: #d5fdd5;
+      background-color: #e6ffe6;
     }
   </style>
 </head>
 <body>
-  <h1>受付一覧</h1>
-  <table id="list-table">
-    <thead>
-      <tr>
-        <th>お名前</th>
-        <th>カタカナ</th>
-        <th>店舗</th>
-        <th>お席</th>
-        <th>受付</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <h2>受付一覧</h2>
+  <div id="table-container">読み込み中...</div>
 
   <script>
-    fetch("https://reception.esthepro-shinya.workers.dev/")
-      .then(response => response.json())
+    const endpoint = "https://reception.esthepro-shinya.workers.dev/";
+
+    fetch(endpoint)
+      .then(res => res.json())
       .then(data => {
-        const tbody = document.querySelector("#list-table tbody");
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const tbody = document.createElement("tbody");
+
+        // ヘッダー行の作成
+        const headerRow = document.createElement("tr");
+        const headers = Object.keys(data[0] || {});
+        headers.forEach(h => {
+          const th = document.createElement("th");
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+
+        // データ行の作成
         data.forEach(row => {
           const tr = document.createElement("tr");
-          if (row["受付"] === "○") tr.classList.add("checked-in");
-
-          tr.innerHTML = `
-            <td>${row["お名前"] || ""}</td>
-            <td>${row["カタカナ"] || ""}</td>
-            <td>${row["店舗"] || ""}</td>
-            <td>${row["お席"] || ""}</td>
-            <td>${row["受付"] || ""}</td>
-          `;
+          if (row["受付"] === "○") {
+            tr.classList.add("checked-in");
+          }
+          headers.forEach(h => {
+            const td = document.createElement("td");
+            td.textContent = row[h];
+            tr.appendChild(td);
+          });
           tbody.appendChild(tr);
         });
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        document.getElementById("table-container").innerHTML = "";
+        document.getElementById("table-container").appendChild(table);
       })
-      .catch(error => {
-        console.error("一覧の取得に失敗しました", error);
-        const tbody = document.querySelector("#list-table tbody");
-        tbody.innerHTML = `<tr><td colspan="5">データ取得に失敗しました</td></tr>`;
+      .catch(err => {
+        document.getElementById("table-container").textContent = "データの取得に失敗しました";
+        console.error(err);
       });
   </script>
 </body>
