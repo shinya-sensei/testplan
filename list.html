@@ -22,4 +22,38 @@
       .then(data => {
         const headers = Object.keys(data[0] || {});
         const table = document.createElement("table");
-        const thead = doc
+        const thead = document.createElement("thead");
+        const tbody = document.createElement("tbody");
+
+        // ヘッダー
+        const trHead = document.createElement("tr");
+        headers.forEach(h => {
+          const th = document.createElement("th");
+          th.textContent = h;
+          trHead.appendChild(th);
+        });
+        thead.appendChild(trHead);
+
+        // データ
+        data.forEach(row => {
+          const tr = document.createElement("tr");
+          headers.forEach(h => {
+            const td = document.createElement("td");
+            td.textContent = row[h] || "";
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        document.getElementById("table-container").innerHTML = "";
+        document.getElementById("table-container").appendChild(table);
+      })
+      .catch(err => {
+        document.getElementById("table-container").textContent = "読み込みに失敗しました。";
+        console.error(err);
+      });
+  </script>
+</body>
+</html>
