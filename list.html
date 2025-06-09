@@ -3,81 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <title>受付一覧</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      max-width: 800px;
-      margin: auto;
-    }
-    h2 {
-      text-align: center;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
-    }
-    th {
-      background-color: #f2f2f2;
-    }
-    .error {
-      color: red;
-      margin-top: 20px;
-      text-align: center;
-    }
+    body { font-family: sans-serif; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #f0f0f0; }
   </style>
 </head>
 <body>
   <h2>受付一覧</h2>
-  <table id="data-table">
-    <thead>
-      <tr>
-        <th>お名前</th>
-        <th>店舗</th>
-        <th>お席</th>
-        <th>受付</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- データがここに入ります -->
-    </tbody>
-  </table>
-
-  <div id="error" class="error"></div>
+  <div id="table-container">読み込み中...</div>
 
   <script>
-    const apiUrl = "https://script.google.com/macros/s/AKfycbxUn4oae7z8yjkhiXB1QtAFNhQepq2uuS5SpQMAVMyvwkzugggtx8ONtFTr0tAO3ki6ig/exec";
+    const endpoint = "https://reception.esthepro-shinya.workers.dev/";
 
-    fetch(apiUrl)
-      .then(res => {
-        if (!res.ok) throw new Error("サーバーエラー");
-        return res.json();
-      })
+    fetch(endpoint)
+      .then(res => res.json())
       .then(data => {
-        const tbody = document.querySelector("#data-table tbody");
-        tbody.innerHTML = "";
-        data.forEach(row => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${row["お名前"] || ""}</td>
-            <td>${row["店舗"] || ""}</td>
-            <td>${row["お席"] || ""}</td>
-            <td>${row["受付"] || ""}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      })
-      .catch(err => {
-        document.getElementById("error").textContent =
-          "データの取得に失敗しました: " + err.message;
-      });
-  </script>
-</body>
-</html>
+        const headers = Object.keys(data[0] || {});
+        const table = document.createElement("table");
+        const thead = doc
