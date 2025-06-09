@@ -1,46 +1,61 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>受付一覧</title>
   <style>
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    tr.checked-in { background-color: #c0f5c0; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+    tr.checked-in {
+      background-color: #d5fdd5;
+    }
   </style>
 </head>
 <body>
   <h1>受付一覧</h1>
-  <table id="list"></table>
+  <table id="list-table">
+    <thead>
+      <tr>
+        <th>お名前</th>
+        <th>カタカナ</th>
+        <th>店舗</th>
+        <th>お席</th>
+        <th>受付</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <script>
     fetch("https://reception.esthepro-shinya.workers.dev/")
-      .then(res => res.json())
+      .then(response => response.json())
       .then(data => {
-        const table = document.getElementById("list");
-        const headers = [\"お名前\", \"カタカナ\", \"店舗\", \"お席\", \"受付\"];
-        const thead = document.createElement(\"thead\");
-        const tr = document.createElement(\"tr\");
-        headers.forEach(h => {
-          const th = document.createElement(\"th\");
-          th.textContent = h;
-          tr.appendChild(th);
-        });
-        thead.appendChild(tr);
-        table.appendChild(thead);
-
-        const tbody = document.createElement(\"tbody\");
+        const tbody = document.querySelector("#list-table tbody");
         data.forEach(row => {
-          const tr = document.createElement(\"tr\");
-          if (row[4] === \"○\") tr.classList.add(\"checked-in\");
-          row.slice(0, 5).forEach(cell => {
-            const td = document.createElement(\"td\");
-            td.textContent = cell;
-            tr.appendChild(td);
-          });
+          const tr = document.createElement("tr");
+          if (row["受付"] === "○") tr.classList.add("checked-in");
+
+          tr.innerHTML = `
+            <td>${row["お名前"] || ""}</td>
+            <td>${row["カタカナ"] || ""}</td>
+            <td>${row["店舗"] || ""}</td>
+            <td>${row["お席"] || ""}</td>
+            <td>${row["受付"] || ""}</td>
+          `;
           tbody.appendChild(tr);
         });
-        table.appendChild(tbody);
+      })
+      .catch(error => {
+        console.error("一覧の取得に失敗しました", error);
+        const tbody = document.querySelector("#list-table tbody");
+        tbody.innerHTML = `<tr><td colspan="5">データ取得に失敗しました</td></tr>`;
       });
   </script>
 </body>
