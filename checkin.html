@@ -1,46 +1,75 @@
-/// ✅ checkin.html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>受付フォーム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; }
+    input, button { padding: 10px; font-size: 1em; margin-top: 10px; width: 100%; }
+    #result { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
+    .hidden { display: none; }
+  </style>
 </head>
 <body>
-  <h1>受付フォーム</h1>
-  <label for="kana">お名前（カタカナ）:</label>
-  <input type="text" id="kana">
-  <button onclick="searchUser()">検索</button>
-
-  <div id="result"></div>
+  <h2>来場者 受付フォーム</h2>
+  <input type="text" id="nameInput" placeholder="名前（ひらがな）を入力">
+  <button onclick="searchName()">検索</button>
+  <button onclick="markAsCheckedIn()" class="hidden" id="checkinBtn">受付する</button>
+  <div id="result">検索結果がここに表示されます</div>
 
   <script>
-    async function searchUser() {
-      const kana = document.getElementById("kana").value;
-      const res = await fetch("https://reception.esthepro-shinya.workers.dev/");
-      const data = await res.json();
-      const user = data.find(row => row[1] && row[1].includes(kana));
+    const endpoint = "https://reception.esthepro-shinya.workers.dev/";
+    let matchedRowIndex = null;
 
-      const result = document.getElementById("result");
-      if (user) {
-        result.innerHTML = `
-          <p>名前: ${user[0]}</p>
-          <p>店舗: ${user[2]}</p>
-          <p>お席: ${user[3]}</p>
-          <button onclick='checkin("${user[1]}")'>受付する</button>
-        `;
-      } else {
-        result.textContent = "該当者が見つかりません。";
+    function searchName() {
+      const input = document.getElementById("nameInput").value.trim();
+      const resultDiv = document.getElementById("result");
+      const button = document.getElementById("checkinBtn");
+      button.classList.add("hidden");
+
+      if (!input) {
+        resultDiv.textContent = "⚠️ 名前を入力してください。";
+        return;
       }
+
+      fetch(endpoint)
+        .then(res => res.json())
+        .then(data => {
+          const match = data.find((row, i) => row["カタカナ"] && row["カタカナ"].includes(input));
+          if (match) {
+            matchedRowIndex = data.findIndex(r => r === match);
+            resultDiv.textContent = `✅ ${match["お名前"]} さん\n店舗：${match["店舗"]}\nお席：${match["お席"]}`;
+            button.classList.remove("hidden");
+          } else {
+            matchedRowIndex = null;
+            resultDiv.textContent = "⚠️ 一致する名前が見つかりませんでした。";
+          }
+        })
+        .catch(err => {
+          resultDiv.textContent = "⚠️ データ取得エラー：" + err.message;
+        });
     }
 
-    async function checkin(kana) {
-      const res = await fetch("https://reception.esthepro-shinya.workers.dev/", {
+    function markAsCheckedIn() {
+      if (matchedRowIndex === null) {
+        alert("先に検索をしてください。");
+        return;
+      }
+
+      fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `kana=${encodeURIComponent(kana)}`
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ row: matchedRowIndex })
+      })
+      .then(res => res.text())
+      .then(text => {
+        document.getElementById("result").textContent = "🙆 受付完了しました。";
+        document.getElementById("checkinBtn").classList.add("hidden");
+      })
+      .catch(err => {
+        document.getElementById("result").textContent = "⚠️ 登録に失敗しました：" + err.message;
       });
-      const result = await res.text();
-      document.getElementById("result").innerHTML += `<p>${result}</p>`;
     }
   </script>
 </body>
