@@ -2,69 +2,92 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>受付フォーム</title>
+  <title>来場者 受付フォーム</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    input, button { font-size: 1em; padding: 8px; }
-    #result { margin-top: 20px; white-space: pre-wrap; }
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    input, button {
+      padding: 8px;
+      font-size: 16px;
+      margin: 4px;
+    }
+    .matched {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
   </style>
 </head>
 <body>
   <h2>来場者 受付フォーム</h2>
-  <input type="text" id="nameInput" placeholder="カタカナを入力" />
+  <input id="katakana-input" type="text" placeholder="カタカナ名で検索" />
   <button onclick="searchName()">検索</button>
-  <div id="result">検索結果がここに表示されます</div>
-  <button id="checkinButton" style="display:none" onclick="markAsCheckedIn()">受付する</button>
+  <br/>
+  <div class="matched" id="match-result"></div>
+  <button id="checkin-button" onclick="submitCheckin()" disabled>受付する</button>
+  <div id="status-message"></div>
 
   <script>
     const endpoint = "https://reception.esthepro-shinya.workers.dev/";
-    let matchedRow = null;
+    let selectedKatakana = "";
 
-    function searchName() {
-      const input = document.getElementById("nameInput").value.trim();
-      const resultDiv = document.getElementById("result");
-      const checkinButton = document.getElementById("checkinButton");
-      resultDiv.textContent = "🔄 検索中...";
-      checkinButton.style.display = "none";
+    async function searchName() {
+      const input = document.getElementById("katakana-input").value.trim();
+      const resultDiv = document.getElementById("match-result");
+      const button = document.getElementById("checkin-button");
+      const status = document.getElementById("status-message");
+      resultDiv.textContent = "処理中...";
+      status.textContent = "";
+      button.disabled = true;
+      selectedKatakana = "";
 
-      fetch(endpoint)
-        .then((res) => res.json())
-        .then((data) => {
-          matchedRow = data.find((row) => row["カタカナ"] && row["カタカナ"].includes(input));
-          if (matchedRow) {
-            resultDiv.textContent = `✅ ${matchedRow["お名前"]} さん（${matchedRow["店舗"]} / ${matchedRow["お席"]}）`;
-            checkinButton.style.display = "inline-block";
-          } else {
-            resultDiv.textContent = "⚠️ 該当者が見つかりません";
-          }
-        })
-        .catch((err) => {
-          resultDiv.textContent = "⚠️ データ取得に失敗しました";
-        });
+      try {
+        const res = await fetch(endpoint);
+        const data = await res.json();
+
+        const matched = data.find(row => row["カタカナ"] && row["カタカナ"].includes(input));
+        if (matched) {
+          resultDiv.textContent = `「${matched["お名前"]}」様（${matched["店舗"]}・${matched["お席"]}）ですね`;
+          selectedKatakana = matched["カタカナ"];
+          button.disabled = false;
+        } else {
+          resultDiv.textContent = "該当者が見つかりません";
+        }
+      } catch (e) {
+        resultDiv.textContent = "検索に失敗しました";
+      }
     }
 
-    function markAsCheckedIn() {
-      if (!matchedRow) return;
-      const resultDiv = document.getElementById("result");
-      resultDiv.textContent = "🔄 登録中...";
+    async function submitCheckin() {
+      const status = document.getElementById("status-message");
+      status.textContent = "受付中...";
 
-      const postData = new URLSearchParams();
-      postData.append("name", matchedRow["お名前"]);
-      postData.append("store", matchedRow["店舗"]);
-      postData.append("seat", matchedRow["お席"]);
-
-      fetch(endpoint, {
-        method: "POST",
-        body: postData,
-      })
-        .then((res) => res.text())
-        .then((text) => {
-          resultDiv.textContent = `🎉 ${matchedRow["お名前"]} さんを受付済みにしました！`;
-          document.getElementById("checkinButton").style.display = "none";
-        })
-        .catch(() => {
-          resultDiv.textContent = "⚠️ 登録に失敗しました : Failed to fetch";
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `katakana=${encodeURIComponent(selectedKatakana)}`
         });
+        const text = await res.text();
+
+        if (text === "OK") {
+          status.textContent = "✅ 受付完了しました！";
+          status.className = "success";
+        } else {
+          status.textContent = "⚠️ 登録に失敗しました（未登録の可能性）";
+          status.className = "error";
+        }
+      } catch (e) {
+        status.textContent = "⚠️ 通信エラーで受付できませんでした";
+        status.className = "error";
+      }
     }
   </script>
 </body>
