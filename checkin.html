@@ -1,46 +1,58 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>受付フォーム</title>
 </head>
 <body>
-  <h2>名前（カタカナ）で検索</h2>
-  <input type="text" id="searchInput" placeholder="例：カナザワ">
-  <button onclick="search()">検索</button>
+  <h1>受付フォーム</h1>
+  <label for="kana">お名前（カタカナ）:</label>
+  <input type="text" id="kana">
+  <button onclick="searchUser()">検索</button>
   <div id="result"></div>
 
   <script>
-    const GAS_URL = "https://reception.esthepro-shinya.workers.dev/";
-
-    async function search() {
-      const keyword = document.getElementById("searchInput").value.trim();
-      const res = await fetch(GAS_URL);
+    async function searchUser() {
+      const kana = document.getElementById("kana").value.trim();
+      const res = await fetch("https://reception.esthepro-shinya.workers.dev/");
       const data = await res.json();
 
-      const match = data.find(row => row["カタカナ"] && row["カタカナ"].includes(keyword));
+      const match = data.find(row => row["カタカナ"] && row["カタカナ"].includes(kana));
 
       const resultDiv = document.getElementById("result");
-      if (match) {
-        resultDiv.innerHTML = `
-          <p><strong>お名前:</strong> ${match["お名前"]}</p>
-          <p><strong>店舗:</strong> ${match["店舗"]}</p>
-          <p><strong>お席:</strong> ${match["お席"]}</p>
-          <button onclick='checkIn("${match["カタカナ"]}")'>受付する</button>
-        `;
-      } else {
-        resultDiv.innerHTML = "該当者が見つかりませんでした";
+      if (!match) {
+        resultDiv.innerHTML = "該当者が見つかりません";
+        return;
       }
+
+      if (match["受付"] === "○") {
+        resultDiv.innerHTML = `${match["お名前"]} さんはすでに受付済みです。`;
+        return;
+      }
+
+      resultDiv.innerHTML = `
+        <p>こちらの方ですか？</p>
+        <ul>
+          <li>名前：${match["お名前"]}</li>
+          <li>店舗：${match["店舗"]}</li>
+          <li>お席：${match["お席"]}</li>
+        </ul>
+        <button onclick='submitCheckin("${match["お名前"]}")'>受付する</button>
+      `;
     }
 
-    async function checkIn(katakana) {
-      const response = await fetch(GAS_URL + `?katakana=${encodeURIComponent(katakana)}`, {
-        method: "POST"
+    async function submitCheckin(name) {
+      const res = await fetch("https://reception.esthepro-shinya.workers.dev/", {
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: `name=${encodeURIComponent(name)}`
       });
-      const text = await response.text();
-      alert(text === "OK" ? "受付完了しました！" : "受付に失敗しました");
-      location.reload();
+
+      if (res.ok) {
+        document.getElementById("result").innerHTML = "受付完了しました！";
+      } else {
+        document.getElementById("result").innerHTML = "エラーが発生しました。";
+      }
     }
   </script>
 </body>
