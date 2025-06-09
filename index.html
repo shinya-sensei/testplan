@@ -1,55 +1,60 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>受付フォーム</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; }
-    input, button { padding: 10px; font-size: 1em; margin-top: 10px; width: 100%; }
-    #result { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin-top: 10px;
+      width: 100%;
+    }
+    #result {
+      margin-top: 20px;
+      white-space: pre-wrap;
+      background: #f4f4f4;
+      padding: 10px;
+    }
   </style>
 </head>
 <body>
   <h2>来場者 受付フォーム</h2>
-  <input type="text" id="nameInput" placeholder="名前（ひらがな）を入力">
-  <button onclick="searchName()">検索</button>
-  <button onclick="markAsCheckedIn()">受付</button>
-  <div id="result">検索結果がここに表示されます</div>
+  <input type="text" id="nameInput" placeholder="名前（ひらがな）を入力" />
+  <input type="text" id="storeInput" placeholder="店舗名（任意）" />
+  <input type="text" id="seatInput" placeholder="座席番号（例：A1）" />
+  <button onclick="sendData()">受付する</button>
+  <div id="result">受付結果がここに表示されます</div>
 
   <script>
-    const webhookUrl = "https://script.google.com/macros/s/AKfycbzmJ8v0RP3zXf2Sh4kegeL0nHxR11fIW_dWhOAxPsUCMHl40Oo4Ady7z1NA5gEC3ehe/exec";
-    let lastName = "";
+    const webhookUrl = "https://reception.esthepro-shinya.workers.dev/";
 
-    function searchName() {
+    function sendData() {
       const name = document.getElementById("nameInput").value.trim();
-      if (!name) return alert("名前を入力してください");
+      const store = document.getElementById("storeInput").value.trim();
+      const seat = document.getElementById("seatInput").value.trim();
+
+      if (!name) {
+        alert("名前を入力してください！");
+        return;
+      }
+
+      const params = new URLSearchParams();
+      params.append("name", name);
+      params.append("store", store);
+      params.append("seat", seat);
 
       fetch(webhookUrl, {
         method: "POST",
-        body: JSON.stringify({ text: name }),
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
       })
-      .then(res => res.text())
-      .then(data => {
-        document.getElementById("result").innerText = data;
-        lastName = name;
-      });
-    }
-
-    function markAsCheckedIn() {
-      if (!lastName) return alert("先に名前を検索してください");
-
-      fetch(webhookUrl, {
-        method: "POST",
-        body: JSON.stringify({ text: "受付" }),
-        headers: { "Content-Type": "application/json" }
-      })
-      .then(res => res.text())
-      .then(data => {
-        document.getElementById("result").innerText = data;
-      });
-    }
-  </script>
-</body>
-</html>
+        .then((res) => res.text())
+        .then((data)
