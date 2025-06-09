@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>受付フォーム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; }
+    input, button { padding: 10px; font-size: 1em; margin-top: 10px; width: 100%; }
+    #result { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h2>来場者 受付フォーム</h2>
+  <input type="text" id="nameInput" placeholder="名前（ひらがな）を入力">
+  <button onclick="searchName()">検索</button>
+  <button onclick="markAsCheckedIn()">受付</button>
+  <div id="result">検索結果がここに表示されます</div>
+
+  <script>
+    const webhookUrl = "https://script.google.com/macros/s/AKfycbxpKC7RuUPv6tiKUGw-YNGbG6jk4UqxdkW-l_Hhwe2a_LHNnSe0XFBfbqUPzSxnvXA5/exec";
+    let lastName = "";
+
+    function searchName() {
+      const name = document.getElementById("nameInput").value.trim();
+      if (!name) return alert("名前を入力してください");
+
+      fetch(webhookUrl, {
+        method: "POST",
+        body: JSON.stringify({ text: name }),
+        headers: { "Content-Type": "application/json" }
+      })
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("result").innerText = data;
+        lastName = name;
+      });
+    }
+
+    function markAsCheckedIn() {
+      if (!lastName) return alert("先に名前を検索してください");
+
+      fetch(webhookUrl, {
+        method: "POST",
+        body: JSON.stringify({ text: "受付" }),
+        headers: { "Content-Type": "application/json" }
+      })
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("result").innerText = data;
+      });
+    }
+  </script>
+</body>
+</html>
