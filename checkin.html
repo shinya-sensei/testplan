@@ -1,91 +1,53 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>受付システム</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 2em;
-      max-width: 500px;
-      margin: auto;
-    }
-    input, button {
-      padding: 0.5em;
-      margin-top: 1em;
-      width: 100%;
-      font-size: 1em;
-    }
-    .result {
-      margin-top: 1em;
-      padding: 1em;
-      border: 1px solid #ccc;
-      background: #f9f9f9;
-    }
-    .success {
-      color: green;
-    }
-    .error {
-      color: red;
-    }
-  </style>
+  <title>受付フォーム</title>
 </head>
 <body>
-  <h1>受付チェックイン</h1>
-  <label for="kana">お名前（カタカナ）を入力：</label>
-  <input type="text" id="kana" placeholder="カタカナで入力">
+  <h1>受付フォーム</h1>
+  <input type="text" id="katakanaInput" placeholder="カタカナで検索">
   <button onclick="search()">検索</button>
-
-  <div id="result" class="result" style="display: none;"></div>
+  <div id="result"></div>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbw72gp3BXQKh5k6NNhWLkHXrChv_EplwC0n3GGAaI_uMR64DxcxAQYcBD0un2NIhWT1EQ/exec"; // ←ここはあなたの最新URLに
+    const endpoint = "https://reception.esthepro-shinya.workers.dev/";
 
-    let matchedPerson = null;
+    async function search() {
+      const input = document.getElementById("katakanaInput").value.trim();
+      if (!input) return alert("カタカナを入力してください");
 
-    function search() {
-      const kana = document.getElementById('kana').value.trim();
-      if (!kana) return;
+      const res = await fetch(endpoint);
+      const data = await res.json();
+      const match = data.find(row => row["カタカナ"] === input);
 
-      fetch(GAS_URL)
-        .then(res => res.json())
-        .then(data => {
-          matchedPerson = data.find(row => row['カタカナ'] === kana);
-          const resultDiv = document.getElementById('result');
-          if (matchedPerson) {
-            resultDiv.innerHTML = `
-              <p>以下の方でよろしいですか？</p>
-              <ul>
-                <li>お名前：${matchedPerson['お名前']}</li>
-                <li>店舗：${matchedPerson['店舗']}</li>
-                <li>お席：${matchedPerson['お席']}</li>
-              </ul>
-              <button onclick="checkin('${kana}')">受付完了にする</button>
-            `;
-            resultDiv.className = "result";
-            resultDiv.style.display = "block";
-          } else {
-            resultDiv.innerHTML = "<p class='error'>該当者が見つかりません。</p>";
-            resultDiv.style.display = "block";
-          }
-        });
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "";
+
+      if (!match) {
+        resultDiv.textContent = "該当者が見つかりません";
+        return;
+      }
+
+      resultDiv.innerHTML = `
+        <p>お名前：${match["お名前"]}</p>
+        <p>店舗：${match["店舗"]}</p>
+        <p>お席：${match["お席"]}</p>
+        <button onclick="checkIn('${input}')">受付する</button>
+      `;
     }
 
-    function checkin(kana) {
-      fetch(GAS_URL, {
+    async function checkIn(katakana) {
+      const formData = new URLSearchParams();
+      formData.append("katakana", katakana);
+
+      const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `kana=${encodeURIComponent(kana)}`
-      })
-      .then(res => res.text())
-      .then(text => {
-        const resultDiv = document.getElementById('result');
-        if (text === "OK") {
-          resultDiv.innerHTML = "<p class='success'>受付が完了しました！</p>";
-        } else {
-          resultDiv.innerHTML = "<p class='error'>登録エラーが発生しました。</p>";
-        }
+        body: formData,
       });
+
+      const text = await res.text();
+      alert(text === "OK" ? "受付完了しました" : "受付エラー");
     }
   </script>
 </body>
