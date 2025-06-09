@@ -8,6 +8,7 @@
   <h1>受付フォーム</h1>
   <input type="text" id="katakanaInput" placeholder="カタカナで検索">
   <button onclick="search()">検索</button>
+  <div id="status" style="margin-top: 1em; color: gray;"></div>
   <div id="result"></div>
 
   <script>
@@ -15,39 +16,61 @@
 
     async function search() {
       const input = document.getElementById("katakanaInput").value.trim();
-      if (!input) return alert("カタカナを入力してください");
-
-      const res = await fetch(endpoint);
-      const data = await res.json();
-      const match = data.find(row => row["カタカナ"] === input);
-
       const resultDiv = document.getElementById("result");
+      const statusDiv = document.getElementById("status");
       resultDiv.innerHTML = "";
+      statusDiv.textContent = "";
 
-      if (!match) {
-        resultDiv.textContent = "該当者が見つかりません";
+      if (!input) {
+        alert("カタカナを入力してください");
         return;
       }
 
-      resultDiv.innerHTML = `
-        <p>お名前：${match["お名前"]}</p>
-        <p>店舗：${match["店舗"]}</p>
-        <p>お席：${match["お席"]}</p>
-        <button onclick="checkIn('${input}')">受付する</button>
-      `;
+      statusDiv.textContent = "検索中...";
+
+      try {
+        const res = await fetch(endpoint);
+        const data = await res.json();
+        const match = data.find(row => row["カタカナ"] === input);
+        statusDiv.textContent = "";
+
+        if (!match) {
+          resultDiv.textContent = "該当者が見つかりません";
+          return;
+        }
+
+        resultDiv.innerHTML = `
+          <p>お名前：${match["お名前"]}</p>
+          <p>店舗：${match["店舗"]}</p>
+          <p>お席：${match["お席"]}</p>
+          <button onclick="checkIn('${input}')">受付する</button>
+        `;
+      } catch (error) {
+        statusDiv.textContent = "データ取得エラー";
+        console.error(error);
+      }
     }
 
     async function checkIn(katakana) {
+      const statusDiv = document.getElementById("status");
+      statusDiv.textContent = "受付処理中...";
+
       const formData = new URLSearchParams();
       formData.append("katakana", katakana);
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        body: formData,
-      });
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          body: formData,
+        });
 
-      const text = await res.text();
-      alert(text === "OK" ? "受付完了しました" : "受付エラー");
+        const text = await res.text();
+        statusDiv.textContent = "";
+        alert(text === "OK" ? "受付完了しました" : "受付エラー");
+      } catch (error) {
+        statusDiv.textContent = "受付通信エラー";
+        console.error(error);
+      }
     }
   </script>
 </body>
