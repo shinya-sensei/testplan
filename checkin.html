@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>受付フォーム</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; }
+    input, button { padding: 10px; font-size: 1em; margin-top: 10px; width: 100%; }
+    #result { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h2>来場者 受付フォーム</h2>
+  <input type="text" id="nameInput" placeholder="名前（ひらがな）を入力">
+  <button onclick="searchAndCheckin()">受付する</button>
+  <div id="result">検索結果がここに表示されます</div>
+
+  <script>
+    const webhookUrl = "https://reception.esthepro-shinya.workers.dev/";
+
+    function searchAndCheckin() {
+      const name = document.getElementById("nameInput").value.trim();
+      if (!name) return alert("名前を入力してください");
+
+      fetch(webhookUrl, {
+        method: "POST",
+        body: new URLSearchParams({ name }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById("result").innerText =
+            `✅ ${data.name}さんを受付済みにしました\n\n【店舗】${data.store}\n【お席】${data.seat}`;
+        } else {
+          document.getElementById("result").innerText = `⚠ ${data.message}`;
+        }
+      })
+      .catch(err => {
+        document.getElementById("result").innerText = `エラーが発生しました：\n${err}`;
+      });
+    }
+  </script>
+</body>
+</html>
