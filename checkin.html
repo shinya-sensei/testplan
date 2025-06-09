@@ -4,40 +4,72 @@
   <meta charset="UTF-8">
   <title>受付フォーム</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; }
-    input, button { padding: 10px; font-size: 1em; margin-top: 10px; width: 100%; }
-    #result { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
+    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    input, button { font-size: 1em; padding: 8px; margin-top: 10px; width: 100%; }
+    .result-box { border: 1px solid #ccc; padding: 10px; margin-top: 15px; background: #f9f9f9; }
+    .entry { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee; }
   </style>
 </head>
 <body>
-  <h2>来場者 受付フォーム</h2>
-  <input type="text" id="nameInput" placeholder="名前（ひらがな）を入力">
-  <button onclick="searchAndCheckin()">受付する</button>
-  <div id="result">検索結果がここに表示されます</div>
+  <h2>受付チェックイン</h2>
+  <input type="text" id="searchName" placeholder="名前を入力（部分一致OK）">
+  <button onclick="searchUser()">検索</button>
+  <div id="results" class="result-box"></div>
 
   <script>
-    const webhookUrl = "https://reception.esthepro-shinya.workers.dev/";
+    const endpoint = "https://reception.esthepro-shinya.workers.dev/";
 
-    function searchAndCheckin() {
-      const name = document.getElementById("nameInput").value.trim();
-      if (!name) return alert("名前を入力してください");
+    function searchUser() {
+      const name = document.getElementById("searchName").value.trim();
+      const resultsBox = document.getElementById("results");
+      resultsBox.innerHTML = "検索中...";
 
-      fetch(webhookUrl, {
+      fetch(endpoint)
+        .then(res => res.json())
+        .then(data => {
+          const matches = data.filter(row => row["お名前"] && row["お名前"].includes(name));
+          if (matches.length === 0) {
+            resultsBox.innerHTML = "該当者が見つかりませんでした。";
+            return;
+          }
+          resultsBox.innerHTML = "";
+          matches.forEach((person, index) => {
+            const div = document.createElement("div");
+            div.className = "entry";
+            div.innerHTML = `
+              <strong>${person["お名前"]}</strong><br>
+              店舗: ${person["店舗"]} ／ 席: ${person["お席"]}<br>
+              <button onclick="markAsChecked(${index})">この人を受付する</button>
+            `;
+            resultsBox.appendChild(div);
+          });
+          window._searchCache = matches;
+        })
+        .catch(err => {
+          console.error(err);
+          resultsBox.innerHTML = "エラーが発生しました。";
+        });
+    }
+
+    function markAsChecked(index) {
+      const person = window._searchCache[index];
+      const params = new URLSearchParams({
+        name: person["お名前"],
+        store: person["店舗"],
+        seat: person["お席"]
+      });
+      fetch("https://script.google.com/macros/s/AKfycbz8GNdC7ZZhdiym70aDMYZE-VgCsKsSBw16C0l141y-EA2lyhuaIsxVP3iCSiUiZQBXlg/exec", {
         method: "POST",
-        body: new URLSearchParams({ name }),
-        headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        body: params
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          document.getElementById("result").innerText =
-            `✅ ${data.name}さんを受付済みにしました\n\n【店舗】${data.store}\n【お席】${data.seat}`;
-        } else {
-          document.getElementById("result").innerText = `⚠ ${data.message}`;
-        }
+      .then(res => res.text())
+      .then(result => {
+        alert(`${person["お名前"]} さんを受付済みにしました！`);
+        searchUser(); // 再検索して表示を更新
       })
       .catch(err => {
-        document.getElementById("result").innerText = `エラーが発生しました：\n${err}`;
+        console.error(err);
+        alert("受付処理中にエラーが発生しました。");
       });
     }
   </script>
