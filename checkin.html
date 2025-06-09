@@ -1,76 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>受付フォーム</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input, button { font-size: 1em; padding: 8px; }
+    #result { margin-top: 20px; white-space: pre-wrap; }
+  </style>
 </head>
 <body>
-  <h1>受付フォーム</h1>
-  <input type="text" id="katakanaInput" placeholder="カタカナで検索">
-  <button onclick="search()">検索</button>
-  <div id="status" style="margin-top: 1em; color: gray;"></div>
-  <div id="result"></div>
+  <h2>来場者 受付フォーム</h2>
+  <input type="text" id="nameInput" placeholder="カタカナを入力" />
+  <button onclick="searchName()">検索</button>
+  <div id="result">検索結果がここに表示されます</div>
+  <button id="checkinButton" style="display:none" onclick="markAsCheckedIn()">受付する</button>
 
   <script>
     const endpoint = "https://reception.esthepro-shinya.workers.dev/";
+    let matchedRow = null;
 
-    async function search() {
-      const input = document.getElementById("katakanaInput").value.trim();
+    function searchName() {
+      const input = document.getElementById("nameInput").value.trim();
       const resultDiv = document.getElementById("result");
-      const statusDiv = document.getElementById("status");
-      resultDiv.innerHTML = "";
-      statusDiv.textContent = "";
+      const checkinButton = document.getElementById("checkinButton");
+      resultDiv.textContent = "🔄 検索中...";
+      checkinButton.style.display = "none";
 
-      if (!input) {
-        alert("カタカナを入力してください");
-        return;
-      }
-
-      statusDiv.textContent = "検索中...";
-
-      try {
-        const res = await fetch(endpoint);
-        const data = await res.json();
-        const match = data.find(row => row["カタカナ"] === input);
-        statusDiv.textContent = "";
-
-        if (!match) {
-          resultDiv.textContent = "該当者が見つかりません";
-          return;
-        }
-
-        resultDiv.innerHTML = `
-          <p>お名前：${match["お名前"]}</p>
-          <p>店舗：${match["店舗"]}</p>
-          <p>お席：${match["お席"]}</p>
-          <button onclick="checkIn('${input}')">受付する</button>
-        `;
-      } catch (error) {
-        statusDiv.textContent = "データ取得エラー";
-        console.error(error);
-      }
+      fetch(endpoint)
+        .then((res) => res.json())
+        .then((data) => {
+          matchedRow = data.find((row) => row["カタカナ"] && row["カタカナ"].includes(input));
+          if (matchedRow) {
+            resultDiv.textContent = `✅ ${matchedRow["お名前"]} さん（${matchedRow["店舗"]} / ${matchedRow["お席"]}）`;
+            checkinButton.style.display = "inline-block";
+          } else {
+            resultDiv.textContent = "⚠️ 該当者が見つかりません";
+          }
+        })
+        .catch((err) => {
+          resultDiv.textContent = "⚠️ データ取得に失敗しました";
+        });
     }
 
-    async function checkIn(katakana) {
-      const statusDiv = document.getElementById("status");
-      statusDiv.textContent = "受付処理中...";
+    function markAsCheckedIn() {
+      if (!matchedRow) return;
+      const resultDiv = document.getElementById("result");
+      resultDiv.textContent = "🔄 登録中...";
 
-      const formData = new URLSearchParams();
-      formData.append("katakana", katakana);
+      const postData = new URLSearchParams();
+      postData.append("name", matchedRow["お名前"]);
+      postData.append("store", matchedRow["店舗"]);
+      postData.append("seat", matchedRow["お席"]);
 
-      try {
-        const res = await fetch(endpoint, {
-          method: "POST",
-          body: formData,
+      fetch(endpoint, {
+        method: "POST",
+        body: postData,
+      })
+        .then((res) => res.text())
+        .then((text) => {
+          resultDiv.textContent = `🎉 ${matchedRow["お名前"]} さんを受付済みにしました！`;
+          document.getElementById("checkinButton").style.display = "none";
+        })
+        .catch(() => {
+          resultDiv.textContent = "⚠️ 登録に失敗しました : Failed to fetch";
         });
-
-        const text = await res.text();
-        statusDiv.textContent = "";
-        alert(text === "OK" ? "受付完了しました" : "受付エラー");
-      } catch (error) {
-        statusDiv.textContent = "受付通信エラー";
-        console.error(error);
-      }
     }
   </script>
 </body>
