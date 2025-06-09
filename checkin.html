@@ -1,5 +1,6 @@
+/// ✅ checkin.html
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <title>受付フォーム</title>
@@ -9,50 +10,37 @@
   <label for="kana">お名前（カタカナ）:</label>
   <input type="text" id="kana">
   <button onclick="searchUser()">検索</button>
+
   <div id="result"></div>
 
   <script>
     async function searchUser() {
-      const kana = document.getElementById("kana").value.trim();
+      const kana = document.getElementById("kana").value;
       const res = await fetch("https://reception.esthepro-shinya.workers.dev/");
       const data = await res.json();
+      const user = data.find(row => row[1] && row[1].includes(kana));
 
-      const match = data.find(row => row["カタカナ"] && row["カタカナ"].includes(kana));
-
-      const resultDiv = document.getElementById("result");
-      if (!match) {
-        resultDiv.innerHTML = "該当者が見つかりません";
-        return;
+      const result = document.getElementById("result");
+      if (user) {
+        result.innerHTML = `
+          <p>名前: ${user[0]}</p>
+          <p>店舗: ${user[2]}</p>
+          <p>お席: ${user[3]}</p>
+          <button onclick='checkin("${user[1]}")'>受付する</button>
+        `;
+      } else {
+        result.textContent = "該当者が見つかりません。";
       }
-
-      if (match["受付"] === "○") {
-        resultDiv.innerHTML = `${match["お名前"]} さんはすでに受付済みです。`;
-        return;
-      }
-
-      resultDiv.innerHTML = `
-        <p>こちらの方ですか？</p>
-        <ul>
-          <li>名前：${match["お名前"]}</li>
-          <li>店舗：${match["店舗"]}</li>
-          <li>お席：${match["お席"]}</li>
-        </ul>
-        <button onclick='submitCheckin("${match["お名前"]}")'>受付する</button>
-      `;
     }
 
-    async function submitCheckin(name) {
+    async function checkin(kana) {
       const res = await fetch("https://reception.esthepro-shinya.workers.dev/", {
         method: "POST",
-        headers: {"Content-Type": "application/x-www-form-urlencoded"},
-        body: `name=${encodeURIComponent(name)}`
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `kana=${encodeURIComponent(kana)}`
       });
-
-      if (res.ok) {
-        document.getElementById("result").innerHTML = "受付完了しました！";
-      } else {
-        document.getElementById("result").innerHTML = "エラーが発生しました。";
-      }
+      const result = await res.text();
+      document.getElementById("result").innerHTML += `<p>${result}</p>`;
     }
   </script>
 </body>
