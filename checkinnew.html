@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>来場者 受付フォーム</title>
+  <title>検索テスト</title>
   <style>
     body {
       font-family: sans-serif;
@@ -17,77 +17,35 @@
       margin-top: 10px;
       font-weight: bold;
     }
-    .success {
-      color: green;
-    }
-    .error {
-      color: red;
-    }
   </style>
 </head>
 <body>
-  <h2>来場者 受付フォーム</h2>
+  <h2>カタカナ名で検索テスト</h2>
   <input id="katakana-input" type="text" placeholder="カタカナ名で検索" />
   <button onclick="searchName()">検索</button>
-  <br/>
   <div class="matched" id="match-result"></div>
-  <button id="checkin-button" onclick="submitCheckin()" disabled>受付する</button>
-  <div id="status-message"></div>
 
   <script>
     const endpoint = "https://reception.esthepro-shinya.workers.dev/";
-    let selectedKatakana = "";
 
     async function searchName() {
       const input = document.getElementById("katakana-input").value.trim();
       const resultDiv = document.getElementById("match-result");
-      const button = document.getElementById("checkin-button");
-      const status = document.getElementById("status-message");
-      resultDiv.textContent = "処理中...";
-      status.textContent = "";
-      button.disabled = true;
-      selectedKatakana = "";
+      resultDiv.textContent = "検索中...";
 
       try {
         const res = await fetch(endpoint);
         const data = await res.json();
 
         const matched = data.find(row => row["カタカナ"] && row["カタカナ"].includes(input));
+
         if (matched) {
-          resultDiv.textContent = `「${matched["お名前"]}」様（${matched["店舗"]}・${matched["お席"]}）ですね`;
-          selectedKatakana = matched["カタカナ"]; // ✅ 修正：ここが肝
-          button.disabled = false;
+          resultDiv.textContent = `一致したカタカナ：${matched["カタカナ"]}`;
         } else {
-          resultDiv.textContent = "該当者が見つかりません";
+          resultDiv.textContent = "一致するデータが見つかりませんでした。";
         }
       } catch (e) {
-        resultDiv.textContent = "検索に失敗しました";
-      }
-    }
-
-    async function submitCheckin() {
-      const status = document.getElementById("status-message");
-      status.textContent = "受付中...";
-
-      try {
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ katakana: selectedKatakana })
-        });
-
-        const text = await res.text();
-
-        if (text === "OK") {
-          status.textContent = "✅ 受付完了しました！";
-          status.className = "success";
-        } else {
-          status.textContent = "⚠️ 登録に失敗しました（未登録の可能性）";
-          status.className = "error";
-        }
-      } catch (e) {
-        status.textContent = "⚠️ 通信エラーで受付できませんでした";
-        status.className = "error";
+        resultDiv.textContent = "通信エラーが発生しました。";
       }
     }
   </script>
