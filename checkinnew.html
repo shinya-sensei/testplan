@@ -15,6 +15,12 @@
     }
     .result-line {
       margin: 4px 0;
+      font-weight: bold; /* 表示項目を太字にする */
+    }
+    .result-label {
+      font-weight: normal; /* ラベルは太字にしない */
+      color: #555;
+      margin-right: 5px;
     }
     .success {
       color: green;
@@ -25,7 +31,7 @@
   </style>
 </head>
 <body>
-  <h2>来場者検索＋受付v3</h2>
+  <h2>来場者検索＋受付v4</h2>
   <input id="katakana-input" type="text" placeholder="カタカナ名で検索" />
   <button onclick="searchName()">検索</button>
   <div id="result-container"></div>
@@ -35,66 +41,102 @@
 
   <script>
     const endpoint = "https://reception.esthepro-shinya.workers.dev/";
-    let selectedKatakana = "";
+    let selectedKatakana = ""; // 受付時にGASに送信する正確なカタカナ名を保持
 
     async function searchName() {
       const input = document.getElementById("katakana-input").value.trim();
       const resultDiv = document.getElementById("result-container");
       const button = document.getElementById("checkin-button");
       const status = document.getElementById("status-message");
-      resultDiv.innerHTML = "";
-      status.textContent = "";
-      button.disabled = true;
-      selectedKatakana = "";
+      resultDiv.innerHTML = ""; // 結果表示クリア
+      status.textContent = "";  // ステータスメッセージクリア
+      button.disabled = true;   // 受付ボタン無効化
+      selectedKatakana = "";    // 選択されたカタカナ名クリア
+
+      if (input === "") {
+        resultDiv.textContent = "検索するカタカナ名を入力してください。";
+        return;
+      }
 
       try {
-        const res = await fetch(endpoint);
+        const res = await fetch(endpoint); // GETリクエストで全データを取得
         const data = await res.json();
 
+        // 入力値を含むカタカナ名を持つ最初の行を検索
+        // ここは部分一致で、フロントでの表示のため
         const matched = data.find(row => row["カタカナ"] && row["カタカナ"].includes(input));
 
         if (matched) {
-          const fields = ["お名前", "カタカナ", "店舗", "お席", "受付", "WOTT体験時間"];
-          fields.forEach(key => {
+          // 表示するフィールドとその順序を定義
+          const displayFields = [
+            { key: "お名前", label: "名前" },
+            { key: "カタカナ", label: "カタカナ" },
+            { key: "店舗", label: "店舗" },
+            { key: "お席", label: "お席" },
+            { key: "WOTT体験時間", label: "WOTT体験時間" } // F列
+          ];
+
+          displayFields.forEach(field => {
             const div = document.createElement("div");
             div.className = "result-line";
-            div.textContent = matched[key] ?? "";
+            div.innerHTML = `<span class="result-label">${field.label}:</span> ${matched[field.key] ?? ""}`;
             resultDiv.appendChild(div);
           });
 
-          selectedKatakana = matched["カタカナ"]; // ✅ 完全な名前をセット
+          // 受付ボタンを有効にするための正確なカタカナ名をセット
+          selectedKatakana = matched["カタカナ"];
           button.disabled = false;
+
         } else {
           resultDiv.textContent = "一致するデータが見つかりませんでした。";
         }
       } catch (e) {
+        console.error("検索中にエラーが発生しました:", e);
         resultDiv.textContent = "通信エラーが発生しました。";
       }
     }
 
     async function submitCheckin() {
       const status = document.getElementById("status-message");
+      const button = document.getElementById("checkin-button");
       status.textContent = "受付中...";
+      status.className = ""; // クラスをリセット
+      button.disabled = true; // 処理中はボタンを無効化
+
+      if (!selectedKatakana) {
+        status.textContent = "⚠️ 検索結果が選択されていません。";
+        status.className = "error";
+        button.disabled = false; // エラー時はボタンを再有効化
+        return;
+      }
 
       try {
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ katakana: selectedKatakana })
+          body: JSON.stringify({ katakana: selectedKatakana }) // 正確なカタカナ名を送信
         });
 
-        const text = await res.text();
+        const text = await res.text(); // GASからの応答をテキストで受け取る
 
         if (text === "OK") {
           status.textContent = "✅ 受付完了しました！";
           status.className = "success";
+          // 受付後、再度検索して表示を更新する (任意)
+          // searchName(); 
+        } else if (text === "Not Found") {
+          status.textContent = "⚠️ 受付失敗：対象のカタカナ名が見つかりませんでした。";
+          status.className = "error";
         } else {
-          status.textContent = "⚠️ 受付失敗（登録されていない可能性）";
+          status.textContent = `⚠️ 受付失敗：予期せぬ応答 (${text})`;
           status.className = "error";
         }
       } catch (e) {
+        console.error("受付処理中にエラーが発生しました:", e);
         status.textContent = "⚠️ 通信エラーが発生しました。";
         status.className = "error";
+      } finally {
+         button.disabled = false; // 処理終了後、ボタンを再有効化
       }
     }
   </script>
