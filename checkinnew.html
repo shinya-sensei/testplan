@@ -31,7 +31,7 @@
   </style>
 </head>
 <body>
-  <h2>来場者検索＋受付v4</h2>
+  <h2>来場者検索＋受付v3</h2>
   <input id="katakana-input" type="text" placeholder="カタカナ名で検索" />
   <button onclick="searchName()">検索</button>
   <div id="result-container"></div>
@@ -40,7 +40,8 @@
   <div id="status-message"></div>
 
   <script>
-    const endpoint = "https://reception.esthepro-shinya.workers.dev/";
+    // あなたのGASウェブアプリのURLを貼り付け済み
+    const endpoint = "https://script.google.com/macros/s/AKfycbyAyjqNlyGSPZlfgW7Fi4zA0UkKQM2dLnjvA3lRwgN0Ot7kh-Pr9NIeCJybo7SJcNNJGg/exec"; 
     let selectedKatakana = ""; // 受付時にGASに送信する正確なカタカナ名を保持
 
     async function searchName() {
@@ -60,10 +61,13 @@
 
       try {
         const res = await fetch(endpoint); // GETリクエストで全データを取得
+        // HTTPステータスがOKでない場合のエラーハンドリングを追加
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status} - ${await res.text()}`);
+        }
         const data = await res.json();
 
         // 入力値を含むカタカナ名を持つ最初の行を検索
-        // ここは部分一致で、フロントでの表示のため
         const matched = data.find(row => row["カタカナ"] && row["カタカナ"].includes(input));
 
         if (matched) {
@@ -92,7 +96,7 @@
         }
       } catch (e) {
         console.error("検索中にエラーが発生しました:", e);
-        resultDiv.textContent = "通信エラーが発生しました。";
+        resultDiv.textContent = `通信エラーが発生しました: ${e.message}`;
       }
     }
 
@@ -133,7 +137,7 @@
         }
       } catch (e) {
         console.error("受付処理中にエラーが発生しました:", e);
-        status.textContent = "⚠️ 通信エラーが発生しました。";
+        status.textContent = `⚠️ 通信エラーが発生しました: ${e.message}`;
         status.className = "error";
       } finally {
          button.disabled = false; // 処理終了後、ボタンを再有効化
