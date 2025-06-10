@@ -31,7 +31,7 @@
   </style>
 </head>
 <body>
-  <h2>来場者検索＋受付v8</h2>
+  <h2>来場者検索＋受付v9</h2>
   <input id="katakana-input" type="text" placeholder="カタカナ名で検索" />
   <button onclick="searchName()">検索</button>
   <div id="result-container"></div>
@@ -41,7 +41,7 @@
 
   <script>
     // あなたのGASウェブアプリのURLを貼り付け済み
-    const endpoint = "https://script.google.com/macros/s/AKfycbw92P4GLAiqui0PDRekh-zbW9NAm49CytgSlPWM4AfGlyg89lH-irj3fxjQIDncmxYTUQ/exec"; 
+    const endpoint = "https://script.google.com/macros/s/AKfycbzAmfwV9GhWE9Dd8HNgGGKzjffQVlKeVIjsAIdBe-70oRsvWDkOjf5lsiNjFdPXCuJFgg/exec"; 
     let selectedKatakana = ""; // 受付時にGASに送信する正確なカタカナ名を保持
 
     async function searchName() {
