@@ -17,10 +17,16 @@
   <div id="table-container">読み込み中...</div>
 
   <script>
-    const endpoint = "https://reception.esthepro-shinya.workers.dev/";
+    // あなたのGASウェブアプリのURLを貼り付け済み
+    const endpoint = "https://script.google.com/macros/s/AKfycbyAyjqNlyGSPZlfgW7Fi4zA0UkKQM2dLnjvA3lRwgN0Ot7kh-Pr9NIeCJybo7SJcNNJGg/exec"; 
 
     fetch(endpoint)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         if (!Array.isArray(data)) {
           document.getElementById("table-container").textContent = "データの形式が不正です";
@@ -66,8 +72,8 @@
         document.getElementById("summary").textContent = `👥 来場者数（受付済み）：${count}人`;
       })
       .catch(err => {
-        document.getElementById("table-container").textContent = "読み込みに失敗しました";
-        console.error(err);
+        document.getElementById("table-container").textContent = `読み込みに失敗しました: ${err.message}`;
+        console.error("Fetch error for list.html:", err);
       });
   </script>
 </body>
