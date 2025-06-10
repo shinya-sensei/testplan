@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>検索テスト</title>
+  <title>検索＋受付テスト</title>
   <style>
     body {
       font-family: sans-serif;
@@ -13,25 +13,36 @@
       font-size: 16px;
       margin: 4px;
     }
-    .matched {
-      margin-top: 10px;
-      font-weight: bold;
+    .result-line {
+      margin: 4px 0;
+    }
+    .success {
+      color: green;
     }
   </style>
 </head>
 <body>
-  <h2>カタカナ名で検索テスト</h2>
-  <input id="katakana-input" type="text" placeholder="カタカナ名検索" />
+  <h2>来場者検索テスト</h2>
+  <input id="katakana-input" type="text" placeholder="カタカナ名で検索" />
   <button onclick="searchName()">検索</button>
-  <div class="matched" id="match-result"></div>
+  <div id="result-container"></div>
+
+  <button id="checkin-button" onclick="submitCheckin()" disabled>受付する</button>
+  <div id="status-message"></div>
 
   <script>
     const endpoint = "https://reception.esthepro-shinya.workers.dev/";
+    let selectedKatakana = "";
 
     async function searchName() {
       const input = document.getElementById("katakana-input").value.trim();
-      const resultDiv = document.getElementById("match-result");
-      resultDiv.textContent = "検索中...";
+      const resultDiv = document.getElementById("result-container");
+      const button = document.getElementById("checkin-button");
+      const status = document.getElementById("status-message");
+      resultDiv.innerHTML = "";
+      status.textContent = "";
+      button.disabled = true;
+      selectedKatakana = "";
 
       try {
         const res = await fetch(endpoint);
@@ -40,13 +51,28 @@
         const matched = data.find(row => row["カタカナ"] && row["カタカナ"].includes(input));
 
         if (matched) {
-          resultDiv.textContent = `一致したカタカナ：${matched["カタカナ"]}`;
+          const fields = ["お名前", "カタカナ", "店舗", "お席", "受付", "WOTT体験時間"];
+          fields.forEach(key => {
+            const div = document.createElement("div");
+            div.className = "result-line";
+            div.textContent = `${matched[key] ?? ""}`;
+            resultDiv.appendChild(div);
+          });
+
+          selectedKatakana = matched["カタカナ"];
+          button.disabled = false;
         } else {
           resultDiv.textContent = "一致するデータが見つかりませんでした。";
         }
       } catch (e) {
         resultDiv.textContent = "通信エラーが発生しました。";
       }
+    }
+
+    function submitCheckin() {
+      const status = document.getElementById("status-message");
+      status.textContent = `（受付処理はまだ未接続です）`;
+      status.className = "success";
     }
   </script>
 </body>
