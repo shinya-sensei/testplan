@@ -19,10 +19,13 @@
     .success {
       color: green;
     }
+    .error {
+      color: red;
+    }
   </style>
 </head>
 <body>
-  <h2>来場者検索テスト</h2>
+  <h2>来場者検索テストv2</h2>
   <input id="katakana-input" type="text" placeholder="カタカナ名で検索" />
   <button onclick="searchName()">検索</button>
   <div id="result-container"></div>
@@ -39,6 +42,7 @@
       const resultDiv = document.getElementById("result-container");
       const button = document.getElementById("checkin-button");
       const status = document.getElementById("status-message");
+
       resultDiv.innerHTML = "";
       status.textContent = "";
       button.disabled = true;
@@ -69,10 +73,31 @@
       }
     }
 
-    function submitCheckin() {
+    async function submitCheckin() {
       const status = document.getElementById("status-message");
-      status.textContent = `（受付処理はまだ未接続です）`;
-      status.className = "success";
+      status.textContent = "受付中...";
+      status.className = "";
+
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ katakana: selectedKatakana })
+        });
+
+        const text = await res.text();
+
+        if (text === "OK") {
+          status.textContent = "✅ 受付完了しました！";
+          status.className = "success";
+        } else {
+          status.textContent = "⚠️ 受付に失敗しました（未登録の可能性あり）";
+          status.className = "error";
+        }
+      } catch (e) {
+        status.textContent = "⚠️ 通信エラーが発生しました";
+        status.className = "error";
+      }
     }
   </script>
 </body>
