@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>検索＋受付テスト</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    input, button {
+      padding: 8px;
+      font-size: 16px;
+      margin: 4px;
+    }
+    .result-line {
+      margin: 4px 0;
+      font-weight: bold; /* 表示項目を太字にする */
+    }
+    .result-label {
+      font-weight: normal; /* ラベルは太字にしない */
+      color: #555;
+      margin-right: 5px;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h2>来場者検索＋受付v3</h2>
+  <input id="katakana-input" type="text" placeholder="カタカナ名で検索" />
+  <button onclick="searchName()">検索</button>
+  <div id="result-container"></div>
+
+  <button id="checkin-button" onclick="submitCheckin()" disabled>受付する</button>
+  <div id="status-message"></div>
+
+  <script>
+    // あなたのGASウェブアプリのURLを貼り付け済み
+    const endpoint = "https://script.google.com/macros/s/AKfycbyAyjqNlyGSPZlfgW7Fi4zA0UkKQM2dLnjvA3lRwgN0Ot7kh-Pr9NIeCJybo7SJcNNJGg/exec"; 
+    let selectedKatakana = ""; // 受付時にGASに送信する正確なカタカナ名を保持
+
+    async function searchName() {
+      const input = document.getElementById("katakana-input").value.trim();
+      const resultDiv = document.getElementById("result-container");
+      const button = document.getElementById("checkin-button");
+      const status = document.getElementById("status-message");
+      resultDiv.innerHTML = ""; // 結果表示クリア
+      status.textContent = "";  // ステータスメッセージクリア
+      button.disabled = true;   // 受付ボタン無効化
+      selectedKatakana = "";    // 選択されたカタカナ名クリア
+
+      if (input === "") {
+        resultDiv.textContent = "検索するカタカナ名を入力してください。";
+        return;
+      }
+
+      try {
+        const res = await fetch(endpoint); // GETリクエストで全データを取得
+        // HTTPステータスがOKでない場合のエラーハンドリングを追加
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status} - ${await res.text()}`);
+        }
+        const data = await res.json();
+
+        // 入力値を含むカタカナ名を持つ最初の行を検索
+        const matched = data.find(row => row["カタカナ"] && row["カタカナ"].includes(input));
+
+        if (matched) {
+          // 表示するフィールドとその順序を定義
+          const displayFields = [
+            { key: "お名前", label: "名前" },
+            { key: "カタカナ", label: "カタカナ" },
+            { key: "店舗", label: "店舗" },
+            { key: "お席", label: "お席" },
+            { key: "WOTT体験時間", label: "WOTT体験時間" } // F列
+          ];
+
+          displayFields.forEach(field => {
+            const div = document.createElement("div");
+            div.className = "result-line";
+            div.innerHTML = `<span class="result-label">${field.label}:</span> ${matched[field.key] ?? ""}`;
+            resultDiv.appendChild(div);
+          });
+
+          // 受付ボタンを有効にするための正確なカタカナ名をセット
+          selectedKatakana = matched["カタカナ"];
+          button.disabled = false;
+
+        } else {
+          resultDiv.textContent = "一致するデータが見つかりませんでした。";
+        }
+      } catch (e) {
+        console.error("検索中にエラーが発生しました:", e);
+        resultDiv.textContent = `通信エラーが発生しました: ${e.message}`;
+      }
+    }
+
+    async function submitCheckin() {
+      const status = document.getElementById("status-message");
+      const button = document.getElementById("checkin-button");
+      status.textContent = "受付中...";
+      status.className = ""; // クラスをリセット
+      button.disabled = true; // 処理中はボタンを無効化
+
+      if (!selectedKatakana) {
+        status.textContent = "⚠️ 検索結果が選択されていません。";
+        status.className = "error";
+        button.disabled = false; // エラー時はボタンを再有効化
+        return;
+      }
+
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ katakana: selectedKatakana }) // 正確なカタカナ名を送信
+        });
+
+        const text = await res.text(); // GASからの応答をテキストで受け取る
+
+        if (text === "OK") {
+          status.textContent = "✅ 受付完了しました！";
+          status.className = "success";
+          // 受付後、再度検索して表示を更新する (任意)
+          // searchName(); 
+        } else if (text === "Not Found") {
+          status.textContent = "⚠️ 受付失敗：対象のカタカナ名が見つかりませんでした。";
+          status.className = "error";
+        } else {
+          status.textContent = `⚠️ 受付失敗：予期せぬ応答 (${text})`;
+          status.className = "error";
+        }
+      } catch (e) {
+        console.error("受付処理中にエラーが発生しました:", e);
+        status.textContent = `⚠️ 通信エラーが発生しました: ${e.message}`;
+        status.className = "error";
+      } finally {
+         button.disabled = false; // 処理終了後、ボタンを再有効化
+      }
+    }
+  </script>
+</body>
+</html>
