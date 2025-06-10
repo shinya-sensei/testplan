@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <title>来場者 受付フォーム</title>
   <style>
-    <!-- force update 2025-06-10_21:50 -->
-    <!-- dummy update to trigger GitHub Pages refresh -->
     body {
       font-family: sans-serif;
       padding: 20px;
@@ -57,7 +55,7 @@
         const matched = data.find(row => row["カタカナ"] && row["カタカナ"].includes(input));
         if (matched) {
           resultDiv.textContent = `「${matched["お名前"]}」様（${matched["店舗"]}・${matched["お席"]}）ですね`;
-          selectedKatakana = matched["カタカナ"];
+          selectedKatakana = matched["カタカナ"]; // ✅ 修正：ここが肝
           button.disabled = false;
         } else {
           resultDiv.textContent = "該当者が見つかりません";
