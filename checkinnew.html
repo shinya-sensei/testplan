@@ -25,7 +25,7 @@
   </style>
 </head>
 <body>
-  <h2>来場者検索テストv2</h2>
+  <h2>来場者検索＋受付v3</h2>
   <input id="katakana-input" type="text" placeholder="カタカナ名で検索" />
   <button onclick="searchName()">検索</button>
   <div id="result-container"></div>
@@ -42,7 +42,6 @@
       const resultDiv = document.getElementById("result-container");
       const button = document.getElementById("checkin-button");
       const status = document.getElementById("status-message");
-
       resultDiv.innerHTML = "";
       status.textContent = "";
       button.disabled = true;
@@ -59,11 +58,11 @@
           fields.forEach(key => {
             const div = document.createElement("div");
             div.className = "result-line";
-            div.textContent = `${matched[key] ?? ""}`;
+            div.textContent = matched[key] ?? "";
             resultDiv.appendChild(div);
           });
 
-          selectedKatakana = matched["カタカナ"];
+          selectedKatakana = matched["カタカナ"]; // ✅ 完全な名前をセット
           button.disabled = false;
         } else {
           resultDiv.textContent = "一致するデータが見つかりませんでした。";
@@ -76,7 +75,6 @@
     async function submitCheckin() {
       const status = document.getElementById("status-message");
       status.textContent = "受付中...";
-      status.className = "";
 
       try {
         const res = await fetch(endpoint, {
@@ -91,11 +89,11 @@
           status.textContent = "✅ 受付完了しました！";
           status.className = "success";
         } else {
-          status.textContent = "⚠️ 受付に失敗しました（未登録の可能性あり）";
+          status.textContent = "⚠️ 受付失敗（登録されていない可能性）";
           status.className = "error";
         }
       } catch (e) {
-        status.textContent = "⚠️ 通信エラーが発生しました";
+        status.textContent = "⚠️ 通信エラーが発生しました。";
         status.className = "error";
       }
     }
