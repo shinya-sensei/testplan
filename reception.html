@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>来場者 受付フォーム</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 10px;
+      margin: 0;
+    }
+    input, button {
+      padding: 12px;
+      font-size: 18px;
+      margin: 8px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .card {
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      padding: 12px;
+      margin: 12px 0;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+    }
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+    .status {
+      margin-top: 8px;
+      font-weight: bold;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+    .already {
+      color: orange;
+    }
+  </style>
+</head>
+<body>
+  <h2>来場者 受付フォーム（reception）</h2>
+
+  <input id="katakana-input" type="text" placeholder="カタカナ名で検索（例：シンカイ）" />
+  <button onclick="searchNames()">検索</button>
+
+  <div id="results"></div>
+
+  <script>
+    const API_BASE = "https://reception.esthepro-shinya.workers.dev";
+
+    function searchNames() {
+      const katakana = document.getElementById("katakana-input").value.trim();
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "検索中...";
+
+      fetch(`${API_BASE}/?action=search&katakana=${encodeURIComponent(katakana)}`)
+        .then(res => res.json())
+        .then(data => {
+          resultsDiv.innerHTML = "";
+
+          if (!data.results || data.results.length === 0) {
+            resultsDiv.innerHTML = `<p class="error">該当するお客様が見つかりませんでした</p>`;
+            return;
+          }
+
+          data.results.forEach(person => {
+            const card = document.createElement("div");
+            card.className = "card";
+
+            card.innerHTML = `
+              <h3>${person.name} 様（${person.katakana} 様）</h3>
+              <p>店舗：${person.shop}／お席：${person.seat}</p>
+              <p>WOTT体験時間：${person.time || "未記入"}</p>
+              <button ${person.checked ? "disabled" : ""} onclick="checkin('${person.katakana}', this)">
+                ${person.checked ? "すでに受付済みです" : "受付する"}
+              </button>
+              <div class="status" id="status-${person.katakana}"></div>
+            `;
+
+            resultsDiv.appendChild(card);
+          });
+        })
+        .catch(err => {
+          console.error(err);
+          resultsDiv.innerHTML = `<p class="error">通信エラーが発生しました</p>`;
+        });
+    }
+
+    function checkin(katakana, btn) {
+      const statusDiv = document.getElementById(`status-${katakana}`);
+      statusDiv.innerHTML = "受付中...";
+
+      fetch(`${API_BASE}/?action=checkin&katakana=${encodeURIComponent(katakana)}`)
+        .then(res => res.text())
+        .then(msg => {
+          if (msg.includes("すでに受付済み")) {
+            statusDiv.innerHTML = `<span class="already">${msg}</span>`;
+          } else if (msg.includes("受付しました")) {
+            statusDiv.
