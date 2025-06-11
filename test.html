@@ -26,7 +26,7 @@
   </style>
 </head>
 <body>
-  <h2>来場者 受付フォーム1</h2>
+  <h2>来場者 受付フォーム2</h2>
 
   <input id="katakana-input" type="text" placeholder="カタカナ名で検索" />
   <button onclick="searchName()">検索</button>
@@ -37,8 +37,9 @@
 
   <div id="status-message"></div>
 
+  <!-- ✅ スクリプトは body の最後に -->
   <script>
-    const API_BASE = "https://test.esthepro-shinya.workers.dev/";
+    const API_BASE = "https://test.esthepro-shinya.workers.dev";
 
     let currentKatakana = "";
 
@@ -49,4 +50,48 @@
         return;
       }
 
-      fetch(`${API_BASE}/?action=search&katakana=${encode_
+      fetch(`${API_BASE}/?action=search&katakana=${encodeURIComponent(katakana)}`)
+        .then(response => response.json())
+        .then(data => {
+          const resultDiv = document.getElementById("match-result");
+          const checkinBtn = document.getElementById("checkin-button");
+
+          if (data.error) {
+            resultDiv.innerHTML = `<span class="error">該当するお客様が見つかりませんでした</span>`;
+            checkinBtn.disabled = true;
+            currentKatakana = "";
+          } else {
+            resultDiv.innerHTML = `
+              No：${data.no}<br/>
+              お名前：${data.name}<br/>
+              カタカナ：${data.katakana}<br/>
+              店舗：${data.shop}<br/>
+              お席：${data.seat}<br/>
+              WOTT体験時間：${data.time}
+            `;
+            checkinBtn.disabled = false;
+            currentKatakana = data.katakana;
+          }
+        })
+        .catch(error => {
+          console.error("検索エラー:", error);
+          document.getElementById("match-result").innerHTML = `<span class="error">通信エラーが発生しました</span>`;
+        });
+    }
+
+    function submitCheckin() {
+      if (!currentKatakana) return;
+
+      fetch(`${API_BASE}/?action=checkin&katakana=${encodeURIComponent(currentKatakana)}`)
+        .then(response => response.text())
+        .then(msg => {
+          document.getElementById("status-message").innerHTML = `<span class="success">${msg}</span>`;
+        })
+        .catch(error => {
+          console.error("受付エラー:", error);
+          document.getElementById("status-message").innerHTML = `<span class="error">受付処理に失敗しました</span>`;
+        });
+    }
+  </script>
+</body>
+</html>
