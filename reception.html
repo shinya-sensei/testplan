@@ -46,13 +46,25 @@
 <body>
   <h2>来場者 受付フォーム（reception）</h2>
 
-  <input id="katakana-input" type="text" placeholder="カタカナ名で検索（例：シンカイ）" />
+  <input id="katakana-input" type="text" placeholder="カタカナ名で検索（例：ヤマダ）" />
   <button onclick="searchNames()">検索</button>
 
   <div id="results"></div>
 
   <script>
     const API_BASE = "https://reception.esthepro-shinya.workers.dev";
+
+    function formatTime(raw) {
+      if (!raw || raw === "" || raw === "未記入") return "未記入";
+      try {
+        const date = new Date(raw);
+        const hh = date.getHours().toString().padStart(2, "0");
+        const mm = date.getMinutes().toString().padStart(2, "0");
+        return `${hh}:${mm}`;
+      } catch {
+        return "未記入";
+      }
+    }
 
     function searchNames() {
       const katakana = document.getElementById("katakana-input").value.trim();
@@ -76,7 +88,7 @@
             card.innerHTML = `
               <h3>${person.name} 様（${person.katakana} 様）</h3>
               <p>店舗：${person.shop}／お席：${person.seat}</p>
-              <p>WOTT体験時間：${person.time || "未記入"}</p>
+              <p>WOTT体験時間：${formatTime(person.time)}</p>
               <button ${person.checked ? "disabled" : ""} onclick="checkin('${person.katakana}', this)">
                 ${person.checked ? "すでに受付済みです" : "受付する"}
               </button>
