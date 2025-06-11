@@ -102,4 +102,18 @@
           if (msg.includes("すでに受付済み")) {
             statusDiv.innerHTML = `<span class="already">${msg}</span>`;
           } else if (msg.includes("受付しました")) {
-            statusDiv.
+            statusDiv.innerHTML = `<span class="success">${msg}</span>`;
+            btn.disabled = true;
+            btn.textContent = "すでに受付済みです";
+          } else {
+            statusDiv.innerHTML = `<span class="error">${msg}</span>`;
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          statusDiv.innerHTML = `<span class="error">受付処理に失敗しました</span>`;
+        });
+    }
+  </script>
+</body>
+</html>
