@@ -10,25 +10,31 @@
       padding: 20px;
     }
     input[type="text"] {
-      padding: 8px;
-      font-size: 16px;
+      padding: 12px;
+      font-size: 18px;
       margin-right: 8px;
-      width: 250px;
+      width: 260px;
     }
     button {
-      padding: 8px 16px;
-      font-size: 16px;
+      padding: 12px 20px;
+      font-size: 18px;
       cursor: pointer;
+      margin-top: 8px;
     }
     .card {
       border: 1px solid #ccc;
       border-radius: 8px;
       padding: 12px;
-      margin: 10px 0;
+      margin: 12px 0;
       box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
     }
     .checked {
       background-color: #e6ffe6;
+    }
+    .status {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #333;
     }
   </style>
 </head>
@@ -36,6 +42,7 @@
   <h2>来場者 受付フォーム (reception)</h2>
   <input id="katakana-input" type="text" placeholder="例：ヤマダ" />
   <button onclick="search()">検索</button>
+  <div class="status" id="status-message"></div>
   <div id="results"></div>
 
   <script>
@@ -43,17 +50,22 @@
       const katakana = document.getElementById('katakana-input').value.trim();
       if (!katakana) return;
 
+      const status = document.getElementById('status-message');
+      status.textContent = '🔍 検索中...';
+
       const response = await fetch('https://reception.esthepro-shinya.workers.dev/?katakana=' + encodeURIComponent(katakana));
       let data;
       try {
         data = await response.json();
       } catch (e) {
         document.getElementById('results').innerHTML = '<p style="color:red;">通信エラーが発生しました</p>';
+        status.textContent = '';
         return;
       }
 
       const resultsDiv = document.getElementById('results');
       resultsDiv.innerHTML = '';
+      status.textContent = '';
 
       if (!data || data.length === 0) {
         resultsDiv.innerHTML = '<p style="color:red;">該当するお客様が見つかりませんでした</p>';
@@ -83,6 +95,8 @@
         button.textContent = '受付する';
         button.disabled = (entry.checked === '◯');
         button.onclick = async () => {
+          status.textContent = '✅ 受付中...';
+
           const riceChecked = document.getElementById('checkbox-' + entry.row).checked;
 
           const res = await fetch('https://script.google.com/macros/s/AKfycbxm1tdzfPQ3_WbQBWr-Y7eEFeeLoilzwQugYb4U8hM9Ix8xvdcGNoXfe2YrAwaN95aHEQ/exec', {
@@ -94,8 +108,9 @@
           });
 
           const result = await res.text();
-          alert(result);
-          search(); // 再検索して更新
+          status.textContent = `🎉 ${result}`;
+          setTimeout(() => { status.textContent = ''; }, 3000);
+          search(); // 再検索で更新
         };
 
         card.appendChild(name);
