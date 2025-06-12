@@ -36,6 +36,12 @@
       font-weight: bold;
       color: #333;
     }
+    .disabled-button {
+      background-color: #ccc;
+      color: #666;
+      border: none;
+      cursor: default;
+    }
   </style>
 </head>
 <body>
@@ -92,26 +98,31 @@
         checkboxLabel.htmlFor = checkbox.id;
 
         const button = document.createElement('button');
-        button.textContent = '受付する';
-        button.disabled = (entry.checked === '◯');
-        button.onclick = async () => {
-          status.textContent = '✅ 受付中...';
 
-          const riceChecked = document.getElementById('checkbox-' + entry.row).checked;
+        if (entry.checked === '◯') {
+          button.textContent = '受付済み';
+          button.classList.add('disabled-button');
+          button.disabled = true;
+        } else {
+          button.textContent = '受付する';
+          button.onclick = async () => {
+            status.textContent = '✅ 受付中...';
+            const riceChecked = document.getElementById('checkbox-' + entry.row).checked;
 
-          const res = await fetch('https://script.google.com/macros/s/AKfycbxm1tdzfPQ3_WbQBWr-Y7eEFeeLoilzwQugYb4U8hM9Ix8xvdcGNoXfe2YrAwaN95aHEQ/exec', {
-            method: 'POST',
-            body: JSON.stringify({
-              row: entry.row,
-              prolabo: riceChecked
-            })
-          });
+            const res = await fetch('https://script.google.com/macros/s/AKfycbxm1tdzfPQ3_WbQBWr-Y7eEFeeLoilzwQugYb4U8hM9Ix8xvdcGNoXfe2YrAwaN95aHEQ/exec', {
+              method: 'POST',
+              body: JSON.stringify({
+                row: entry.row,
+                prolabo: riceChecked
+              })
+            });
 
-          const result = await res.text();
-          status.textContent = `🎉 ${result}`;
-          setTimeout(() => { status.textContent = ''; }, 3000);
-          search(); // 再検索で更新
-        };
+            const result = await res.text();
+            status.textContent = `🎉 ${result}`;
+            setTimeout(() => { status.textContent = ''; }, 3000);
+            search(); // 再検索で更新
+          };
+        }
 
         card.appendChild(name);
         card.appendChild(store);
