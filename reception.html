@@ -2,129 +2,111 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
+  <title>来場者 受付フォーム (reception)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>来場者 受付フォーム</title>
   <style>
     body {
       font-family: sans-serif;
-      padding: 10px;
-      margin: 0;
+      padding: 20px;
     }
-    input, button {
-      padding: 12px;
-      font-size: 18px;
-      margin: 8px 0;
-      width: 100%;
-      box-sizing: border-box;
+    input[type="text"] {
+      padding: 8px;
+      font-size: 16px;
+      margin-right: 8px;
+      width: 250px;
+    }
+    button {
+      padding: 8px 16px;
+      font-size: 16px;
+      cursor: pointer;
     }
     .card {
       border: 1px solid #ccc;
-      border-radius: 12px;
+      border-radius: 8px;
       padding: 12px;
-      margin: 12px 0;
-      box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+      margin: 10px 0;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
     }
-    .card h3 {
-      margin: 0 0 8px;
-      font-size: 20px;
-    }
-    .status {
-      margin-top: 8px;
-      font-weight: bold;
-    }
-    .success {
-      color: green;
-    }
-    .error {
-      color: red;
-    }
-    .already {
-      color: orange;
+    .checked {
+      background-color: #e6ffe6;
     }
   </style>
 </head>
 <body>
-  <h2>来場者 受付フォーム（reception）</h2>
-
-  <input id="katakana-input" type="text" placeholder="カタカナ名で検索（例：ヤマダ）" />
-  <button onclick="searchNames()">検索</button>
-
+  <h2>来場者 受付フォーム (reception)</h2>
+  <input id="katakana-input" type="text" placeholder="例：ヤマダ" />
+  <button onclick="search()">検索</button>
   <div id="results"></div>
 
   <script>
-    const API_BASE = "https://reception.esthepro-shinya.workers.dev";
+    async function search() {
+      const katakana = document.getElementById('katakana-input').value.trim();
+      if (!katakana) return;
 
-    function formatTime(raw) {
-      if (!raw || raw === "" || raw === "未記入") return "未記入";
+      const response = await fetch('https://reception.esthepro-shinya.workers.dev/?katakana=' + encodeURIComponent(katakana));
+      let data;
       try {
-        const date = new Date(raw);
-        const hh = date.getHours().toString().padStart(2, "0");
-        const mm = date.getMinutes().toString().padStart(2, "0");
-        return `${hh}:${mm}`;
-      } catch {
-        return "未記入";
+        data = await response.json();
+      } catch (e) {
+        document.getElementById('results').innerHTML = '<p style="color:red;">通信エラーが発生しました</p>';
+        return;
       }
-    }
 
-    function searchNames() {
-      const katakana = document.getElementById("katakana-input").value.trim();
-      const resultsDiv = document.getElementById("results");
-      resultsDiv.innerHTML = "検索中...";
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '';
 
-      fetch(`${API_BASE}/?action=search&katakana=${encodeURIComponent(katakana)}`)
-        .then(res => res.json())
-        .then(data => {
-          resultsDiv.innerHTML = "";
+      if (!data || data.length === 0) {
+        resultsDiv.innerHTML = '<p style="color:red;">該当するお客様が見つかりませんでした</p>';
+        return;
+      }
 
-          if (!data.results || data.results.length === 0) {
-            resultsDiv.innerHTML = `<p class="error">該当するお客様が見つかりませんでした</p>`;
-            return;
-          }
+      data.forEach(entry => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        if (entry.checked === '◯') card.classList.add('checked');
 
-          data.results.forEach(person => {
-            const card = document.createElement("div");
-            card.className = "card";
+        const name = document.createElement('p');
+        name.textContent = `お名前：${entry.name}`;
+        const store = document.createElement('p');
+        store.textContent = `店舗：${entry.store}`;
+        const seat = document.createElement('p');
+        seat.textContent = `お席：${entry.seat}`;
 
-            card.innerHTML = `
-              <h3>${person.name} 様（${person.katakana} 様）</h3>
-              <p>店舗：${person.shop}／お席：${person.seat}</p>
-              <p>WOTT体験時間：${formatTime(person.time)}</p>
-              <button ${person.checked ? "disabled" : ""} onclick="checkin('${person.katakana}', this)">
-                ${person.checked ? "すでに受付済みです" : "受付する"}
-              </button>
-              <div class="status" id="status-${person.katakana}"></div>
-            `;
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'checkbox-' + entry.row;
+        const checkboxLabel = document.createElement('label');
+        checkboxLabel.textContent = ' プロラボ米希望';
+        checkboxLabel.htmlFor = checkbox.id;
 
-            resultsDiv.appendChild(card);
+        const button = document.createElement('button');
+        button.textContent = '受付する';
+        button.disabled = (entry.checked === '◯');
+        button.onclick = async () => {
+          const riceChecked = document.getElementById('checkbox-' + entry.row).checked;
+
+          const res = await fetch('https://script.google.com/macros/s/AKfycbxm1tdzfPQ3_WbQBWr-Y7eEFeeLoilzwQugYb4U8hM9Ix8xvdcGNoXfe2YrAwaN95aHEQ/exec', {
+            method: 'POST',
+            body: JSON.stringify({
+              row: entry.row,
+              prolabo: riceChecked
+            })
           });
-        })
-        .catch(err => {
-          console.error(err);
-          resultsDiv.innerHTML = `<p class="error">通信エラーが発生しました</p>`;
-        });
-    }
 
-    function checkin(katakana, btn) {
-      const statusDiv = document.getElementById(`status-${katakana}`);
-      statusDiv.innerHTML = "受付中...";
+          const result = await res.text();
+          alert(result);
+          search(); // 再検索して更新
+        };
 
-      fetch(`${API_BASE}/?action=checkin&katakana=${encodeURIComponent(katakana)}`)
-        .then(res => res.text())
-        .then(msg => {
-          if (msg.includes("すでに受付済み")) {
-            statusDiv.innerHTML = `<span class="already">${msg}</span>`;
-          } else if (msg.includes("受付しました")) {
-            statusDiv.innerHTML = `<span class="success">${msg}</span>`;
-            btn.disabled = true;
-            btn.textContent = "すでに受付済みです";
-          } else {
-            statusDiv.innerHTML = `<span class="error">${msg}</span>`;
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          statusDiv.innerHTML = `<span class="error">受付処理に失敗しました</span>`;
-        });
+        card.appendChild(name);
+        card.appendChild(store);
+        card.appendChild(seat);
+        card.appendChild(checkbox);
+        card.appendChild(checkboxLabel);
+        card.appendChild(document.createElement('br'));
+        card.appendChild(button);
+        resultsDiv.appendChild(card);
+      });
     }
   </script>
 </body>
