@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>来場者 受付フォーム (reception)</title>
+  <title>来場者 受付フォームv2 (reception)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -39,4 +39,107 @@
     .disabled-button {
       background-color: #ccc;
       color: #666;
-      bo
+      border: none;
+      cursor: default;
+    }
+  </style>
+</head>
+<body>
+  <h2>来場者 受付フォーム (reception)</h2>
+  <input id="katakana-input" type="text" placeholder="例：ヤマダ" />
+  <button onclick="search()">検索</button>
+  <div class="status" id="status-message"></div>
+  <div id="results"></div>
+
+  <script>
+    async function search() {
+      const katakana = document.getElementById('katakana-input').value.trim();
+      if (!katakana) return;
+
+      const status = document.getElementById('status-message');
+      status.textContent = '🔍 検索中...';
+
+      const response = await fetch('https://reception.esthepro-shinya.workers.dev/?katakana=' + encodeURIComponent(katakana));
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        document.getElementById('results').innerHTML = '<p style="color:red;">通信エラーが発生しました</p>';
+        status.textContent = '';
+        return;
+      }
+
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '';
+      status.textContent = '';
+
+      if (!data || data.length === 0) {
+        resultsDiv.innerHTML = '<p style="color:red;">該当するお客様が見つかりませんでした</p>';
+        return;
+      }
+
+      data.forEach(entry => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        if (entry.checked === '◯') card.classList.add('checked');
+
+        const name = document.createElement('p');
+        name.textContent = `お名前：${entry.name}`;
+        const store = document.createElement('p');
+        store.textContent = `店舗：${entry.store}`;
+        const seat = document.createElement('p');
+        seat.textContent = `お席：${entry.seat}`;
+        
+        // WOTT体験枠（空欄でも表示）
+        const wott = document.createElement('p');
+        wott.textContent = `WOTT体験枠：${entry.wott ? entry.wott : ''}`;
+        card.appendChild(wott);
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'checkbox-' + entry.row;
+        const checkboxLabel = document.createElement('label');
+        checkboxLabel.textContent = ' プロラボ米希望';
+        checkboxLabel.htmlFor = checkbox.id;
+
+        const button = document.createElement('button');
+
+        if (entry.checked === '◯') {
+          button.textContent = '受付済み';
+          button.classList.add('disabled-button');
+          button.disabled = true;
+        } else {
+          button.textContent = '受付する';
+          button.onclick = async () => {
+            status.textContent = '✅ 受付中...';
+            const riceChecked = document.getElementById('checkbox-' + entry.row).checked;
+
+            const res = await fetch('https://script.google.com/macros/s/AKfycbxm1tdzfPQ3_WbQBWr-Y7eEFeeLoilzwQugYb4U8hM9Ix8xvdcGNoXfe2YrAwaN95aHEQ/exec', {
+              method: 'POST',
+              body: JSON.stringify({
+                row: entry.row,
+                prolabo: riceChecked
+              })
+            });
+
+            const result = await res.text();
+            status.textContent = `🎉 ${result}`;
+            setTimeout(() => { status.textContent = ''; }, 3000);
+            search(); // 再検索で更新
+          };
+        }
+
+        card.appendChild(name);
+        card.appendChild(store);
+        card.appendChild(seat);
+        card.appendChild(wott);
+        card.appendChild(checkbox);
+        card.appendChild(checkboxLabel);
+        card.appendChild(document.createElement('br'));
+        card.appendChild(button);
+        resultsDiv.appendChild(card);
+      });
+    }
+  </script>
+</body>
+</html>
