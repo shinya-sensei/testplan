@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>来場者 受付フォームv3</title>
+  <title>来場者 受付フォームv4</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -88,7 +88,7 @@
           card.appendChild(wott);
 
           if (entry.checked === '◯') {
-            // 受付済みの場合はプロラボ米希望をテキスト表示
+            // 受付済み：プロラボ米希望表示
             const riceStatus = document.createElement('p');
             riceStatus.textContent = entry.rice === '◯' ? 'プロラボ米希望 ☑️' : 'プロラボ米希望 ❌';
             card.appendChild(riceStatus);
@@ -99,7 +99,7 @@
             button.disabled = true;
             card.appendChild(button);
           } else {
-            // 受付前の場合はチェックボックス表示
+            // 未受付：チェックボックス＋ボタン
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.id = 'checkbox-' + entry.row;
