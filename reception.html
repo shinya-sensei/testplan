@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>関西感謝祭受付フォーム</title>
+  <title>来場者 受付フォーム (reception)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -89,6 +89,13 @@
         store.textContent = `店舗：${entry.store}`;
         const seat = document.createElement('p');
         seat.textContent = `お席：${entry.seat}`;
+        
+        // WOTT体験枠が空欄でなければ表示
+        if (entry.wott && entry.wott.trim() !== '') {
+          const wott = document.createElement('p');
+          wott.textContent = `WOTT体験枠：${entry.wott}`;
+          card.appendChild(wott);
+        }
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
