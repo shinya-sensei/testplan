@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>来場者 受付フォーム</title>
+  <title>来場者 受付フォーム (reception)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -46,25 +46,4 @@
 </head>
 <body>
   <h2>来場者 受付フォーム (reception)</h2>
-  <input id="katakana-input" type="text" placeholder="例：ヤマダ" />
-  <button onclick="search()">検索</button>
-  <div class="status" id="status-message"></div>
-  <div id="results"></div>
-
-  <script>
-    async function search() {
-      const katakana = document.getElementById('katakana-input').value.trim();
-      if (!katakana) return;
-
-      const status = document.getElementById('status-message');
-      status.textContent = '🔍 検索中...';
-
-      const response = await fetch('https://reception.esthepro-shinya.workers.dev/?katakana=' + encodeURIComponent(katakana));
-      let data;
-      try {
-        data = await response.json();
-      } catch (e) {
-        document.getElementById('results').innerHTML = '<p style="color:red;">通信エラーが発生しました</p>';
-        status.textContent = '';
-        return;
-      }
+  <input id="katakana-input" type="text" placeh
