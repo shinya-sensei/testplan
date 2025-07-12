@@ -3,30 +3,64 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>受付フォーム（最終） (reception)</title>
+  <title>来場者 受付フォーム (reception)</title>
   <style>
-    body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
-    h1 { color: #333; }
-    .card {
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
     }
-    .card.pending { background: #ffffff; } /* 受付まだ */
-    .card.checked-in { background: #e6ffe6; } /* 受付済み */
-    .status { margin-top: 10px; color: #555; }
-    .error { color: red; }
-    .success { color: green; }
-    .loading { color: #888; margin: 10px 0; }
+    h1 {
+      color: #333;
+      font-size: 1.5em;
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      width: 90%;
+      max-width: 400px;
+      padding: 10px;
+      font-size: 1.1em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
     .button {
-      padding: 8px 15px;
+      padding: 10px 20px;
       background-color: #f0f0f0;
       border: 1px solid #ccc;
       border-radius: 4px;
       cursor: pointer;
+      font-size: 1em;
+      margin-left: 5px;
     }
-    .button:hover { background-color: #ddd; }
+    .button:hover {
+      background-color: #ddd;
+    }
+    .card {
+      background: #e6ffe6;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .card.checked-in {
+      background: #d9fcd9;
+    }
+    .status {
+      margin-top: 10px;
+      color: #555;
+    }
+    .error {
+      color: red;
+    }
+    .success {
+      color: green;
+    }
+    .loading {
+      color: #888;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -37,28 +71,31 @@
   <div id="results"></div>
 
   <script>
-    const API_BASE = 'https://reception.esthepro-shinya.workers.dev';
+    const API_BASE = 'https://reception.esthepro-shinya.workers.dev/';
 
     function search() {
       const katakana = document.getElementById('katakana').value.trim();
+      const statusMsg = document.getElementById('status-message');
+      const resultsDiv = document.getElementById('results');
+
       if (!katakana) {
         alert('カタカナを入力してください');
         return;
       }
 
-      document.getElementById('status-message').textContent = '検索中…';
-      document.getElementById('results').innerHTML = '';
+      statusMsg.textContent = '検索中...';
+      resultsDiv.innerHTML = '';
 
       fetch(`${API_BASE}?katakana=${encodeURIComponent(katakana)}`)
         .then(res => res.json())
         .then(data => {
-          document.getElementById('status-message').textContent = '';
+          statusMsg.textContent = '';
           renderResults(data.results);
         })
         .catch(err => {
           console.error(err);
-          document.getElementById('status-message').textContent = '';
-          document.getElementById('results').innerHTML = '<p class="error">通信エラーが発生しました</p>';
+          statusMsg.textContent = '';
+          resultsDiv.innerHTML = '<p class="error">通信エラーが発生しました</p>';
         });
     }
 
@@ -72,25 +109,21 @@
       }
 
       results.forEach((person, index) => {
-        const cardClass = person.checkedIn ? 'card checked-in' : 'card pending';
-        const riceInfo = person.checkedIn
-          ? `<p><strong>プロラボ米希望：</strong>${person.rice ? '◯' : '❌'}</p>`
-          : `<p><strong>プロラボ米希望：</strong>
-              <input type="checkbox" id="rice-${index}" ${person.rice ? 'checked' : ''}/>
-            </p>`;
-        const buttonHTML = person.checkedIn
-          ? `<button class="button" disabled>受付済み</button>`
-          : `<button class="button" onclick="checkIn(${person.row}, ${index})">受付する</button>`;
-
         const div = document.createElement('div');
-        div.className = cardClass;
+        div.className = 'card' + (person.checkedIn ? ' checked-in' : '');
         div.innerHTML = `
           <p><strong>お名前：</strong>${person.name}様</p>
           <p><strong>店舗：</strong>${person.shop}</p>
           <p><strong>お席：</strong>${person.seat}</p>
           <p><strong>WOTT体験枠：</strong>${person.wott || 'なし'}</p>
-          ${riceInfo}
-          ${buttonHTML}
+          <p><strong>プロラボ米希望：</strong> ${
+            person.checkedIn
+              ? (person.rice ? '◯' : '❌')
+              : `<input type="checkbox" id="rice-${index}" ${person.rice ? 'checked' : ''}/>`
+          }</p>
+          <button class="button" onclick="checkIn(${person.row}, ${index})" ${person.checkedIn ? 'disabled' : ''}>
+            ${person.checkedIn ? '受付済み' : '受付する'}
+          </button>
           <p id="status-${index}" class="status"></p>
         `;
         container.appendChild(div);
@@ -98,9 +131,9 @@
     }
 
     function checkIn(row, index) {
-      const riceChecked = document.getElementById(`rice-${index}`).checked;
+      const riceChecked = document.getElementById(`rice-${index}`)?.checked || false;
       const status = document.getElementById(`status-${index}`);
-      status.textContent = '受付処理中…';
+      status.textContent = '受付処理中...';
 
       fetch(API_BASE, {
         method: 'POST',
@@ -112,7 +145,7 @@
         if (data.success) {
           status.textContent = '受付完了！';
           status.className = 'status success';
-          search(); // 状態更新のため再検索
+          search(); // 更新のため再検索
         } else {
           status.textContent = 'エラーが発生しました';
           status.className = 'status error';
