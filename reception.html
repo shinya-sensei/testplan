@@ -1,126 +1,103 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>受付フォーム (reception)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>受付フォームv7 (reception)</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
+      font-family: sans-serif;
+      margin: 20px;
+      background-color: #f8f8f8;
     }
     h1 {
-      font-size: 24px;
-      font-weight: bold;
+      color: #333;
     }
-    input[type="text"] {
+    input, button {
+      font-size: 1.2em;
+      padding: 8px;
+      margin: 5px 0;
+    }
+    #result {
+      margin-top: 20px;
       padding: 10px;
-      font-size: 16px;
-      width: 250px;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      margin-left: 10px;
-    }
-    .card {
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 15px;
-      margin-top: 15px;
-    }
-    .card.done {
-      background-color: #e0ffe0;
+      background: #e0ffe0;
+      border: 1px solid #90ee90;
     }
     .error {
       color: red;
-      margin-top: 10px;
     }
-    label {
-      display: flex;
-      align-items: center;
-    }
-    label input[type="checkbox"] {
-      margin-right: 5px;
+    .checked {
+      background-color: #d4fcd4;
     }
   </style>
 </head>
 <body>
   <h1>来場者 受付フォーム (reception)</h1>
-  <input type="text" id="katakana" placeholder="カタカナ入力">
-  <button onclick="searchVisitor()">検索</button>
-  <div id="results"></div>
-  <div id="error" class="error"></div>
+  <input type="text" id="katakana" placeholder="カタカナ氏名を入力" />
+  <button onclick="search()">検索</button>
+  <div id="result"></div>
 
   <script>
-    const API_BASE = "https://test.esthepro-shinya.workers.dev/"; // Cloudflare経由
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbxm1tdzfPQ3_WbQBWr-Y7eEFeeLoilzwQugYb4U8hM9Ix8xvdcGNoXfe2YrAwaN95aHEQ/exec';
 
-    async function searchVisitor() {
-      const katakana = document.getElementById('katakana').value;
-      const resultsDiv = document.getElementById('results');
-      const errorDiv = document.getElementById('error');
-      resultsDiv.innerHTML = '';
-      errorDiv.textContent = '';
+    async function search() {
+      const katakana = document.getElementById('katakana').value.trim();
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '';
+      if (!katakana) {
+        resultDiv.innerHTML = '<p class="error">カタカナ氏名を入力してください</p>';
+        return;
+      }
 
+      resultDiv.innerHTML = '検索中...';
       try {
         const response = await fetch(`${API_BASE}?katakana=${encodeURIComponent(katakana)}`);
+        if (!response.ok) throw new Error('APIエラー');
         const data = await response.json();
 
-        if (data.length === 0) {
-          errorDiv.textContent = '該当するお客様が見つかりませんでした';
+        if (!data.results || data.results.length === 0) {
+          resultDiv.innerHTML = '<p class="error">該当者が見つかりませんでした</p>';
           return;
         }
 
-        data.forEach((row, index) => {
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.innerHTML = `
-            <div>お名前：${row.name}</div>
-            <div>店舗：${row.shop}</div>
-            <div>お席：${row.seat}</div>
-            <div>WOTT体験枠：${row.wott ? row.wott : ''}</div>
-            <label>
-              <input type="checkbox" id="rice-${index}" ${row.rice === '◯' ? 'checked' : ''}>
-              プロラボ米希望
-            </label>
-            <button id="checkin-${index}" ${row.checked ? 'disabled' : ''} onclick="checkIn(${row.row}, ${index})">
-              ${row.checked ? '受付済み' : '受付する'}
-            </button>
+        let html = '';
+        data.results.forEach(person => {
+          html += `
+            <div ${person.checkedIn ? 'class="checked"' : ''}>
+              <p>お名前：${person.name}</p>
+              <p>店舗：${person.shop}</p>
+              <p>お席：${person.seat}</p>
+              <p>WOTT体験枠：${person.wott || ''}</p>
+              <p>プロラボ米希望：${person.rice ? '☑️' : '❌'}</p>
+              ${person.checkedIn ? '<p><strong>受付済み</strong></p>' : `<button onclick="checkin(${person.row})">受付する</button>`}
+            </div>
+            <hr />
           `;
-          if (row.checked) {
-            card.classList.add('done');
-          }
-          resultsDiv.appendChild(card);
         });
+        resultDiv.innerHTML = html;
       } catch (err) {
+        resultDiv.innerHTML = '<p class="error">通信エラーが発生しました</p>';
         console.error(err);
-        errorDiv.textContent = '通信エラーが発生しました';
       }
     }
 
-    async function checkIn(row, index) {
-      const riceChecked = document.getElementById(`rice-${index}`).checked ? '◯' : '';
-      const button = document.getElementById(`checkin-${index}`);
-      const card = button.parentElement;
-      button.disabled = true;
-      button.textContent = '受付済み';
-      card.classList.add('done');
-
+    async function checkin(row) {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML += '<p>受付中...</p>';
       try {
-        const response = await fetch(API_BASE, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ row, rice: riceChecked })
-        });
-        if (!response.ok) throw new Error('Network response was not ok');
+        const response = await fetch(`${API_BASE}?row=${row}`, { method: 'POST' });
+        if (!response.ok) throw new Error('APIエラー');
+        const data = await response.json();
+        if (data.success) {
+          resultDiv.innerHTML += '<p>受付が完了しました</p>';
+          search(); // 再検索で更新
+        } else {
+          resultDiv.innerHTML += '<p class="error">受付に失敗しました</p>';
+        }
       } catch (err) {
+        resultDiv.innerHTML += '<p class="error">通信エラーが発生しました</p>';
         console.error(err);
-        alert('受付処理でエラーが発生しました');
-        button.disabled = false;
-        button.textContent = '受付する';
-        card.classList.remove('done');
       }
     }
   </script>
