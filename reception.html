@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>受付フォームV8 (reception)</title>
+  <title>来場者 受付フォーム (reception)</title>
   <style>
     body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; }
     h1 { color: #333; }
@@ -39,7 +39,7 @@
           resultsDiv.innerHTML = '<p class="error">該当者が見つかりません</p>';
           return;
         }
-        data.results.forEach(person => {
+        data.results.forEach((person, index) => {
           const div = document.createElement('div');
           div.className = 'result';
           div.innerHTML = `
@@ -47,8 +47,11 @@
             <p><strong>店舗：</strong>${person.shop}</p>
             <p><strong>お席：</strong>${person.seat}</p>
             <p><strong>WOTT体験枠：</strong>${person.wott || ''}</p>
-            <p><strong>プロラボ米希望：</strong>${person.rice ? '✅' : '❌'}</p>
-            ${person.checkedIn === true ? '<p><strong>受付済み</strong></p>' : `<button onclick="checkin(${person.row})">受付する</button>`}
+            <label>
+              <input type="checkbox" id="rice-${index}" ${person.checkedIn ? (person.rice ? 'checked disabled' : 'disabled') : (person.rice ? 'checked' : '')}>
+              プロラボ米希望
+            </label>
+            ${person.checkedIn ? '<p><strong>受付済み</strong></p>' : `<button onclick="checkin(${person.row}, ${index})">受付する</button>`}
           `;
           resultsDiv.appendChild(div);
         });
@@ -58,13 +61,14 @@
       }
     }
 
-    async function checkin(row) {
+    async function checkin(row, index) {
       const resultsDiv = document.getElementById('results');
+      const riceChecked = document.getElementById(`rice-${index}`).checked;
       try {
         const response = await fetch(`${API_BASE}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ row: row })
+          body: JSON.stringify({ row: row, rice: riceChecked })
         });
         if (!response.ok) throw new Error('通信エラー');
         const data = await response.json();
