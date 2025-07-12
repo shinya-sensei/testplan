@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>来場者 受付フォーム (reception)</title>
+  <title>受付フォーム（最終） (reception)</title>
   <style>
     body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
     h1 { color: #333; }
@@ -18,6 +18,7 @@
     .status { margin-top: 10px; color: #555; }
     .error { color: red; }
     .success { color: green; }
+    .loading { color: #888; margin: 10px 0; }
     .button {
       padding: 8px 15px;
       background-color: #f0f0f0;
@@ -32,6 +33,7 @@
   <h1>来場者 受付フォーム (reception)</h1>
   <input type="text" id="katakana" placeholder="カタカナ" />
   <button class="button" onclick="search()">検索</button>
+  <div id="status-message" class="loading"></div>
   <div id="results"></div>
 
   <script>
@@ -44,11 +46,18 @@
         return;
       }
 
+      document.getElementById('status-message').textContent = '検索中…';
+      document.getElementById('results').innerHTML = '';
+
       fetch(`${API_BASE}?katakana=${encodeURIComponent(katakana)}`)
         .then(res => res.json())
-        .then(data => renderResults(data.results))
+        .then(data => {
+          document.getElementById('status-message').textContent = '';
+          renderResults(data.results);
+        })
         .catch(err => {
           console.error(err);
+          document.getElementById('status-message').textContent = '';
           document.getElementById('results').innerHTML = '<p class="error">通信エラーが発生しました</p>';
         });
     }
