@@ -1,148 +1,134 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>来場者 受付フォームv5</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>受付システムv6</title>
   <style>
     body {
       font-family: sans-serif;
+      background-color: #f7f7f7;
+      margin: 0;
       padding: 20px;
     }
-    input[type="text"] {
-      padding: 12px;
-      font-size: 18px;
-      margin-right: 8px;
-      width: 260px;
+    h1 {
+      text-align: center;
     }
-    button {
-      padding: 12px 20px;
-      font-size: 18px;
-      cursor: pointer;
-      margin-top: 8px;
+    #search {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    #katakanaInput {
+      width: 200px;
+      padding: 10px;
+      font-size: 1.2em;
+    }
+    #searchButton {
+      padding: 10px 20px;
+      font-size: 1.2em;
+      margin-left: 10px;
     }
     .card {
-      border: 1px solid #ccc;
+      background-color: white;
       border-radius: 8px;
-      padding: 12px;
-      margin: 12px 0;
-      box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      margin: 10px auto;
+      padding: 15px;
+      max-width: 500px;
     }
-    .checked {
-      background-color: #e6ffe6;
+    .card p {
+      margin: 5px 0;
     }
-    .status {
-      margin-top: 10px;
-      font-weight: bold;
-      color: #333;
-    }
-    .disabled-button {
-      background-color: #ccc;
-      color: #666;
+    .checkin-button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 8px 15px;
       border: none;
-      cursor: default;
+      border-radius: 4px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .checkin-button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+    label {
+      display: inline-block;
+      margin-right: 10px;
     }
   </style>
 </head>
 <body>
-  <h2>来場者 受付フォーム (reception)</h2>
-  <input id="katakana-input" type="text" placeholder="例：ヤマダ" />
-  <button onclick="search()">検索</button>
-  <div class="status" id="status-message"></div>
-  <div id="results"></div>
+  <h1>受付システム</h1>
+  <div id="search">
+    <input type="text" id="katakanaInput" placeholder="カタカナ入力">
+    <button id="searchButton">検索</button>
+  </div>
+  <div id="result"></div>
 
   <script>
-    async function search() {
-      const katakana = document.getElementById('katakana-input').value.trim();
-      if (!katakana) return;
+    // ✅ Cloudflare外し版API
+    const API_BASE = "https://script.google.com/macros/s/AKfycbxm1tdzfPQ3_WbQBWr-Y7eEFeeLoilzwQugYb4U8hM9Ix8xvdcGNoXfe2YrAwaN95aHEQ/exec";
 
-      const status = document.getElementById('status-message');
-      status.textContent = '🔍 検索中...';
+    document.getElementById('searchButton').addEventListener('click', () => {
+      const katakana = document.getElementById('katakanaInput').value;
+      searchCustomer(katakana);
+    });
 
+    async function searchCustomer(katakana) {
+      document.getElementById('result').innerHTML = "<p>検索中...</p>";
       try {
-        const response = await fetch('https://reception.esthepro-shinya.workers.dev/?katakana=' + encodeURIComponent(katakana));
+        const response = await fetch(`${API_BASE}?action=search&katakana=${encodeURIComponent(katakana)}`);
         const data = await response.json();
 
-        const resultsDiv = document.getElementById('results');
-        resultsDiv.innerHTML = '';
-        status.textContent = '';
-
-        if (!data || data.length === 0) {
-          resultsDiv.innerHTML = '<p style="color:red;">該当するお客様が見つかりませんでした</p>';
+        if (data.length === 0) {
+          document.getElementById('result').innerHTML = "<p>該当なし</p>";
           return;
         }
 
-        data.forEach(entry => {
-          const card = document.createElement('div');
-          card.className = 'card';
-          if (entry.checked === '◯') card.classList.add('checked');
+        const cards = data.map((item, index) => {
+          const riceChecked = item.rice === '◯' ? 'checked disabled' : '';
+          const riceDisplay = item.rice === '◯' ? 'プロラボ米希望☑️' : 'プロラボ米希望❌';
+          const buttonDisabled = item.checked ? 'disabled' : '';
 
-          // 必ずお名前・店舗・お席・WOTT体験枠を表示
-          const name = document.createElement('p');
-          name.textContent = `お名前：${entry.name}`;
-          const store = document.createElement('p');
-          store.textContent = `店舗：${entry.store}`;
-          const seat = document.createElement('p');
-          seat.textContent = `お席：${entry.seat}`;
-          const wott = document.createElement('p');
-          wott.textContent = `WOTT体験枠：${entry.wott ? entry.wott : ''}`;
+          return `
+            <div class="card">
+              <p><strong>お名前:</strong> ${item.name}</p>
+              <p><strong>店舗:</strong> ${item.store}</p>
+              <p><strong>お席:</strong> ${item.seat}</p>
+              <p><strong>WOTT体験枠:</strong> ${item.wott || ""}</p>
+              <p>${riceDisplay}</p>
+              <button class="checkin-button" ${buttonDisabled} onclick="checkInCustomer('${item.id}', ${item.rice === '◯'})">
+                ${item.checked ? '受付済み' : '受付する'}
+              </button>
+            </div>
+          `;
+        }).join('');
 
-          card.appendChild(name);
-          card.appendChild(store);
-          card.appendChild(seat);
-          card.appendChild(wott);
+        document.getElementById('result').innerHTML = cards;
 
-          if (entry.checked === '◯') {
-            // 受付済みはプロラボ米希望の表示だけ
-            const riceStatus = document.createElement('p');
-            riceStatus.textContent = entry.rice === '◯' ? 'プロラボ米希望 ☑️' : 'プロラボ米希望 ❌';
-            card.appendChild(riceStatus);
+      } catch (error) {
+        console.error("検索エラー:", error);
+        document.getElementById('result').innerHTML = "<p>エラーが発生しました</p>";
+      }
+    }
 
-            const button = document.createElement('button');
-            button.textContent = '受付済み';
-            button.classList.add('disabled-button');
-            button.disabled = true;
-            card.appendChild(button);
-          } else {
-            // 未受付はチェックボックスと受付ボタン
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = 'checkbox-' + entry.row;
-            const checkboxLabel = document.createElement('label');
-            checkboxLabel.textContent = ' プロラボ米希望';
-            checkboxLabel.htmlFor = checkbox.id;
+    async function checkInCustomer(id, rice) {
+      try {
+        const response = await fetch(`${API_BASE}?action=checkin&id=${encodeURIComponent(id)}&rice=${rice}`);
+        const result = await response.json();
 
-            const button = document.createElement('button');
-            button.textContent = '受付する';
-            button.onclick = async () => {
-              status.textContent = '✅ 受付中...';
-              const riceChecked = document.getElementById('checkbox-' + entry.row).checked;
-
-              const res = await fetch('https://script.google.com/macros/s/AKfycbxm1tdzfPQ3_WbQBWr-Y7eEFeeLoilzwQugYb4U8hM9Ix8xvdcGNoXfe2YrAwaN95aHEQ/exec', {
-                method: 'POST',
-                body: JSON.stringify({
-                  row: entry.row,
-                  prolabo: riceChecked
-                })
-              });
-
-              const result = await res.text();
-              status.textContent = `🎉 ${result}`;
-              setTimeout(() => { status.textContent = ''; }, 3000);
-              search(); // 再検索で更新
-            };
-
-            card.appendChild(checkbox);
-            card.appendChild(checkboxLabel);
-            card.appendChild(document.createElement('br'));
-            card.appendChild(button);
-          }
-
-          resultsDiv.appendChild(card);
-        });
-      } catch (e) {
-        document.getElementById('results').innerHTML = '<p style="color:red;">通信エラーが発生しました</p>';
-        status.textContent = '';
+        if (result.success) {
+          alert("受付完了！");
+          document.getElementById('searchButton').click();
+        } else {
+          alert("受付失敗：" + result.message);
+        }
+      } catch (error) {
+        console.error("受付エラー:", error);
+        alert("エラーが発生しました");
       }
     }
   </script>
