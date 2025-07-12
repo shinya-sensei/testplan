@@ -19,14 +19,14 @@
     input[type="text"] {
       width: 90%;
       max-width: 400px;
-      padding: 10px;
-      font-size: 1.1em;
+      padding: 8px;
+      font-size: 1em;
       border: 1px solid #ccc;
       border-radius: 4px;
       box-sizing: border-box;
     }
     .button {
-      padding: 10px 20px;
+      padding: 8px 15px;
       background-color: #f0f0f0;
       border: 1px solid #ccc;
       border-radius: 4px;
@@ -38,17 +38,19 @@
       background-color: #ddd;
     }
     .card {
-      background: #e6ffe6;
       border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     .card.checked-in {
-      background: #d9fcd9;
+      background: #e6ffe6; /* 受付済みは薄緑 */
+    }
+    .card.not-checked-in {
+      background: #ffffff; /* 未受付は白 */
     }
     .status {
-      margin-top: 10px;
+      margin-top: 8px;
       color: #555;
     }
     .error {
@@ -110,7 +112,7 @@
 
       results.forEach((person, index) => {
         const div = document.createElement('div');
-        div.className = 'card' + (person.checkedIn ? ' checked-in' : '');
+        div.className = 'card ' + (person.checkedIn ? 'checked-in' : 'not-checked-in');
         div.innerHTML = `
           <p><strong>お名前：</strong>${person.name}様</p>
           <p><strong>店舗：</strong>${person.shop}</p>
@@ -145,7 +147,7 @@
         if (data.success) {
           status.textContent = '受付完了！';
           status.className = 'status success';
-          search(); // 更新のため再検索
+          search(); // 更新
         } else {
           status.textContent = 'エラーが発生しました';
           status.className = 'status error';
