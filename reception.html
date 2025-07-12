@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>受付フォームCF (reception)</title>
+  <title>来場者 受付フォーム (reception)</title>
   <style>
     body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
     h1 { color: #333; }
     .card {
-      background: #e6ffe6;
       border-radius: 8px;
       padding: 15px;
       margin-bottom: 15px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
+    .card.pending { background: #ffffff; } /* 受付まだ */
+    .card.checked-in { background: #e6ffe6; } /* 受付済み */
     .status { margin-top: 10px; color: #555; }
     .error { color: red; }
     .success { color: green; }
@@ -62,19 +63,25 @@
       }
 
       results.forEach((person, index) => {
+        const cardClass = person.checkedIn ? 'card checked-in' : 'card pending';
+        const riceInfo = person.checkedIn
+          ? `<p><strong>プロラボ米希望：</strong>${person.rice ? '◯' : '❌'}</p>`
+          : `<p><strong>プロラボ米希望：</strong>
+              <input type="checkbox" id="rice-${index}" ${person.rice ? 'checked' : ''}/>
+            </p>`;
+        const buttonHTML = person.checkedIn
+          ? `<button class="button" disabled>受付済み</button>`
+          : `<button class="button" onclick="checkIn(${person.row}, ${index})">受付する</button>`;
+
         const div = document.createElement('div');
-        div.className = 'card';
+        div.className = cardClass;
         div.innerHTML = `
           <p><strong>お名前：</strong>${person.name}</p>
           <p><strong>店舗：</strong>${person.shop}</p>
           <p><strong>お席：</strong>${person.seat}</p>
           <p><strong>WOTT体験枠：</strong>${person.wott || 'なし'}</p>
-          <p><strong>プロラボ米希望：</strong>
-            <input type="checkbox" id="rice-${index}" ${person.rice ? 'checked' : ''}/>
-          </p>
-          <button class="button" onclick="checkIn(${person.row}, ${index})" ${person.checkedIn ? 'disabled' : ''}>
-            ${person.checkedIn ? '受付済み' : '受付する'}
-          </button>
+          ${riceInfo}
+          ${buttonHTML}
           <p id="status-${index}" class="status"></p>
         `;
         container.appendChild(div);
@@ -96,8 +103,7 @@
         if (data.success) {
           status.textContent = '受付完了！';
           status.className = 'status success';
-          document.querySelectorAll('.button')[index].disabled = true;
-          document.querySelectorAll('.button')[index].textContent = '受付済み';
+          search(); // 状態更新のため再検索
         } else {
           status.textContent = 'エラーが発生しました';
           status.className = 'status error';
